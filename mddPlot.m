@@ -12,13 +12,22 @@ function mddPlot(caseFolder, rasterBin, xsFile, hisFile, mapFiles, netFiles, dt,
         exportVideo logical = true
         gridRes double {mustBePositive} = 1.0
     end
-% Validate inputs
 
+% Validate inputs
 rasterBin = singleFileGlob(rasterBin);
 xsFile = singleFileGlob(xsFile);
 hisFile = singleFileGlob(caseFolder, hisFile);
 mapFiles = multiFileGlob(caseFolder, mapFiles);
 netFiles = multiFileGlob(caseFolder, netFiles);
+
+% maybe print some stuff here.
+% fprintf('  History File: %s', hisFile);
+% fprintf('%d Network Files\n', numel(netFiles));
+% fprintf('%d Map Files\n', numel(mapFiles));
+
+if numel(mapFiles) ~= numel(netFiles)
+    warning("Mismatch in output files %d net, %d map", numel(netFiles), numel(mapFiles))
+end
 
 %% 2. LOAD TIME SERIES DATA (History File)
 % -------------------------------------------------------------------------
@@ -43,7 +52,6 @@ numSteps = size(ncread(mapFiles{1}, 'time'), 1);
 
 % Could add check to confirm number files same as in partition info.
 % partitions = vInfo.Variables.mesh2d_netelem_domain
-
 
 % Newer delft outputs use this updated schema.
 links = ncread(netFiles{1}, 'NetElemLink')';
