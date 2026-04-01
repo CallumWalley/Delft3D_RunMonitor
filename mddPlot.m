@@ -1,23 +1,26 @@
-function mddPlot(case_folder, raster_bins, xs_file, dt, rho_s, width, export_video, grid_res)
+function mddPlot(caseFolder, rasterBin, xsFile, hisFile, mapFiles, netFiles, dt, rhoS, width, exportVideo, gridRes)
     arguments
-        case_folder {mustBeFolder} = '' 
-        raster_bins {mustBeText} = '*.tif'
-        xs_file     {mustBeText} = '*.txt'
+        caseFolder {mustBeFolder} = '' 
+        rasterBin  {mustBeText} = '*.tif'
+        xsFile     {mustBeText} = '*.txt'
+        hisFile    {mustBeText} = '*/*his.nc'  % Relative to 'caseFolder'
+        mapFiles   {mustBeText} = '*/*map.nc'  % Relative to 'caseFolder'
+        netFiles   {mustBeText} = '*net.nc'    % Relative to 'caseFolder'
         dt double {mustBeNonnegative} = 0
-        rho_s double {mustBePositive} = 1600
+        rhoS double {mustBePositive} = 1600
         width double {mustBePositive} = 47.17
-        export_video logical = true
-        grid_res double {mustBePositive} = 1.0
+        exportVideo logical = true
+        gridRes double {mustBePositive} = 1.0
     end
-
-[hisFile, netFiles, mapFiles] = get_inputs(case_folder);
-
 % Validate inputs
 
-raster_bins = singleFileGlob(raster_bins);
-xs_file = singleFileGlob(xs_file);
+rasterBin = singleFileGlob(rasterBin);
+xsFile = singleFileGlob(xsFile);
+hisFile = singleFileGlob(caseFolder, hisFile);
+mapFiles = multiFileGlob(caseFolder, mapFiles);
+netFiles = multiFileGlob(caseFolder, netFiles);
 
-    %% 2. LOAD TIME SERIES DATA (History File)
+%% 2. LOAD TIME SERIES DATA (History File)
 % -------------------------------------------------------------------------
 fprintf('Loading history data...\n');
 t = ncread(hisFile, 'time');
@@ -25,19 +28,21 @@ dt = t(2) - t(1);
 
 % Qw: Discharge (m3/s) | Qs: Cumulative Bedload (kg)
 Qw = ncread(hisFile, 'cross_section_discharge'); 
-Qs_cum = ncread(hisFile, 'cross_section_bedload_sediment_transport');
+QsCum = ncread(hisFile, 'cross_section_bedload_sediment_transport');
 
 % Convert cumulative mass to instantaneous volumetric flux (m3/m/s)
 % diff() gets the mass per timestep, then divide by time, width, and density.
-Qs = diff(Qs_cum, 1, 2) / dt / width / rho_s;
+Qs = diff(QsCum, 1, 2) / dt / width / rhoS;
 
 %% 3. LOAD MESH & DOMAIN STRUCTURE (Network File)
 % -------------------------------------------------------------------------
 fprintf('Parsing network and partition info...\n');
-v_info = ncinfo(netFiles{1});
-Numsteps = size(ncread(mapFiles{1}, 'time'),1);
+vInfo = ncinfo(netFiles{1});
+numSteps = size(ncread(mapFiles{1}, 'time'), 1);
 % Extract number of partitions from the idomain attribute
-%partitions = v_info.Variables(strcmp({v_info.Variables.Name}, 'idomain')).Attributes(3).Value;
+
+% Could add check to confirm number files same as in partition info.
+% partitions = vInfo.Variables.mesh2d_netelem_domain
 
 
 % Newer delft outputs use this updated schema.
@@ -46,16 +51,16 @@ Xn = ncread(netFiles{1}, 'mesh2d_node_x');
 Yn = ncread(netFiles{1}, 'mesh2d_node_y');
 Zn = ncread(netFiles{1}, 'mesh2d_node_z');
 TRI = ncread(netFiles{1}, 'NetElemNode')'; % Triangulation connectivity
-idomain_size = size(links, 1);
+idomainSize = size(links, 1);
 
 %% 4. AGGREGATE MULTI-DOMAIN SPATIAL DATA
 % -------------------------------------------------------------------------
 % Pre-allocate global arrays for speed
-X = zeros(idomain_size, 1);
-Y = zeros(idomain_size, 1);
-d_g = zeros(idomain_size, Numsteps);     % Water depth
-sl_g = zeros(idomain_size, Numsteps);    % Water level (s1)
-dg_g = zeros(idomain_size, Numsteps);    % Median grain size (D50)
+X = zeros(idomainSize, 1);
+Y = zeros(idomainSize, 1);
+waterDepth = zeros(idomainSize, numSteps);     % Water depth
+waterLevel = zeros(idomainSize, numSteps);    % Water level (s1)
+medianGrainSize = zeros(idomainSize, numSteps);    % Median grain size (D50)
 
 fprintf('Looping through partitions...\n');
 for q = 1:numel(mapFiles)
@@ -63,16 +68,16 @@ for q = 1:numel(mapFiles)
         %fname = sprintf('%s_%04d_map.nc', map_prefix, q);'
         fprintf('\r    %s\n', mapFiles{q})
         % Global mapping indices for this partition
-        g_idx = int32(ncread(mapFiles{q}, 'mesh2d_flowelem_globalnr'));
+        gIdx = int32(ncread(mapFiles{q}, 'mesh2d_flowelem_globalnr'));
         
         % Static Geometry
-        X(g_idx) = ncread(mapFiles{q}, 'mesh2d_face_x');
-        Y(g_idx) = ncread(mapFiles{q}, 'mesh2d_face_y');
+        X(gIdx) = ncread(mapFiles{q}, 'mesh2d_face_x');
+        Y(gIdx) = ncread(mapFiles{q}, 'mesh2d_face_y');
         
-        % Dynamic Resultss
-        d_g(g_idx, :)  = ncread(mapFiles{q}, 'mesh2d_waterdepth');
-        sl_g(g_idx, :) = ncread(mapFiles{q}, 'mesh2d_s1');
-        dg_g(g_idx, :) = ncread(mapFiles{q}, 'mesh2d_dg');
+        % Dynamic Results
+        waterDepth(gIdx, :)  = ncread(mapFiles{q}, 'mesh2d_waterdepth');
+        waterLevel(gIdx, :) = ncread(mapFiles{q}, 'mesh2d_s1');
+        medianGrainSize(gIdx, :) = ncread(mapFiles{q}, 'mesh2d_dg');
     catch ME
         warning('Could not read %s', mapFiles{q})
     end
@@ -80,19 +85,19 @@ end
 
 fprintf('Interpolate to regular grid.\n');
 
-% Derived Bed Elevation (Z = WaterLevel - Depth)
-Zbed_g = sl_g - d_g;
+% Derived Bed Elevation (zBed = waterLevel - waterDepth)
+zBed = waterLevel - waterDepth;
 
 %% 5. GRID INTERPOLATION SETUP
 % -------------------------------------------------------------------------
 % Define a regular grid for raster-based analysis and plotting
-x_vec = floor(min(X)):grid_res:ceil(max(X));
-y_vec = floor(min(Y)):grid_res:ceil(max(Y));
-[XX, YY] = meshgrid(x_vec, y_vec);
+xVec = floor(min(X)):gridRes:ceil(max(X));
+yVec = floor(min(Y)):gridRes:ceil(max(Y));
+[XX, YY] = meshgrid(xVec, yVec);
 
 fprintf('Creating a mask for the active flow area using an alphaShape\n')
 shp = alphaShape(X, Y);
-in_mask = inShape(shp, XX, YY);
+inMask = inShape(shp, XX, YY);
 
 %% 6. VISUALIZATION: DEPTH & DOD ANIMATION
 % -------------------------------------------------------------------------
@@ -102,13 +107,13 @@ m1 = 128;
 r = [linspace(0, 1, m1)'; ones(m1, 1)];
 g = [linspace(0, 1, m1)'; linspace(1, 0, m1)'];
 b = [ones(m1, 1); linspace(1, 0, m1)'];
-cmap_dod = [r g b];
+cmapDod = [r g b];
 
 % Load Cross-section locations
-xs = load(xs_file);
-xs_order = [1:2:25, 29 31 33 37 35 39]; 
+xs = load(xsFile);
+xsOrder = [1:2:25, 29 31 33 37 35 39]; 
 
-if export_video
+if exportVideo
     v = VideoWriter('Simulation_Summary.avi');
     v.FrameRate = 10;
     open(v);
@@ -117,33 +122,33 @@ end
 fig = figure('Position', [10 370 1280 976], 'Color', 'w');
 tlo = tiledlayout(3, 4, 'TileSpacing', 'Compact');
 
-for a = 2:Numsteps
+for a = 2:numSteps
     % 1. Interpolate current data to regular grid for this timestep
     % 'nearest' is faster; 'linear' is smoother.
-    bed_interp = griddata(X, Y, Zbed_g(:, a), XX, YY, 'nearest');
-    bed_interp(~in_mask) = NaN;
+    bedInterp = griddata(X, Y, zBed(:, a), XX, YY, 'nearest');
+    bedInterp(~inMask) = NaN;
     
     % Calculate DoD relative to initial timestep
-    dod_instant = Zbed_g(:, a) - Zbed_g(:, 1);
+    dodInstant = zBed(:, a) - zBed(:, 1);
     
     % Mapping back to Mesh Nodes for trisurf plotting
-    Zn_nodes = interp2(x_vec, y_vec, bed_interp, Xn, Yn);
-    Depth_nodes = interp1(X, d_g(:, a), Xn); % Simple mapping to nodes
+    ZnNodes = interp2(xVec, yVec, bedInterp, Xn, Yn);
+    depthNodes = interp1(X, waterDepth(:, a), Xn); % Simple mapping to nodes
     
     % --- SUBPLOT 1: Water Depth ---
     ax1 = nexttile(1, [2, 2]);
-    h1 = trisurf(TRI(:, 1:3), Xn, Yn, Zn_nodes, Depth_nodes, 'EdgeColor', 'none');
+    h1 = trisurf(TRI(:, 1:3), Xn, Yn, ZnNodes, depthNodes, 'EdgeColor', 'none');
     view(0, 90); axis equal; colorbar;
     colormap(ax1, parula); clim([0 2]);
     title(sprintf('Water Depth (h) | Time: %d hrs', round(t(a)/3600)));
     
     % --- SUBPLOT 2: Bed Level Difference (DoD) ---
     ax2 = nexttile(3, [2, 2]);
-    % We plot dod_instant mapped to nodes
-    dod_nodes = interp1(X, dod_instant, Xn); 
-    h2 = trisurf(TRI(:, 1:3), Xn, Yn, Zn_nodes, dod_nodes, 'EdgeColor', 'none');
+    % We plot dodInstant mapped to nodes
+    dodNodes = interp1(X, dodInstant, Xn); 
+    h2 = trisurf(TRI(:, 1:3), Xn, Yn, ZnNodes, dodNodes, 'EdgeColor', 'none');
     view(0, 90); axis equal; colorbar;
-    colormap(ax2, cmap_dod); clim([-1 1]);
+    colormap(ax2, cmapDod); clim([-1 1]);
     title('Morphological Change (DoD) [m]');
 
     % --- SUBPLOT 3: Longitudinal Mass Balance ---
@@ -151,19 +156,19 @@ for a = 2:Numsteps
     % This logic can be expanded based on the 'binsraster' logic in original code
     
     drawnow;
-    if export_video
+    if exportVideo
         writeVideo(v, getframe(gcf));
     end
 end
 
-if export_video, close(v); end
+if exportVideo, close(v); end
 
 %% 7. STL EXPORT FOR 3D MODELING (Blender/Unity)
 % -------------------------------------------------------------------------
 % Centering coordinates to avoid large-coordinate jitter in 3D software
 offsetX = floor(min(Xn));
 offsetY = floor(min(Yn));
-verts = [(Xn - offsetX), (Yn - offsetY), Zn_nodes];
+verts = [(Xn - offsetX), (Yn - offsetY), ZnNodes];
 TR = triangulation(TRI(:, 1:3), verts);
 stlwrite(TR, 'Final_Bed_Surface.stl');
 
@@ -174,10 +179,21 @@ toc;
 
 end
 
-% matlab doesn't nativly expand globs.
-function [path] = singleFileGlob(pattern)
+% matlab doesn't natively expand globs.
+function [path] = singleFileGlob(varargin)
+    pattern = fullfile(varargin{:});
     dirs = dir(pattern);
     path = fullfile(dirs(1).folder, dirs(1).name);
-    assert(isfile(path));
-    if (size(dirs) > 1) ; warning('Multiple files found matching %s', pattern); end
+    if numel(dirs) > 1
+        warning('Multiple files found matching %s; using %s', pattern, path);
+    end
+end
+
+function [paths] = multiFileGlob(varargin)
+
+    pattern = fullfile(varargin{:});
+    dirs = dir(pattern);
+    assert(~isempty(dirs), 'No files found matching %s', pattern);
+
+    paths = sort(fullfile({dirs.folder}, {dirs.name}));
 end
