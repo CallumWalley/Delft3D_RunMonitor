@@ -1,4 +1,4 @@
-function mddPlot(caseFolder, rasterBin, xsFile, hisFile, mapFiles, netFiles, dt, rhoS, width, exportVideo, gridRes)
+function mddPlot(caseFolder, rasterBin, xsFile, hisFile, mapFiles, netFiles, rhoS, width, exportVideo, gridRes)
     arguments
         caseFolder {mustBeFolder} = '' 
         rasterBin  {mustBeText} = '*.tif'
@@ -6,7 +6,6 @@ function mddPlot(caseFolder, rasterBin, xsFile, hisFile, mapFiles, netFiles, dt,
         hisFile    {mustBeText} = '*/*his.nc'  % Relative to 'caseFolder'
         mapFiles   {mustBeText} = '*/*map.nc'  % Relative to 'caseFolder'
         netFiles   {mustBeText} = '*net.nc'    % Relative to 'caseFolder'
-        dt double {mustBeNonnegative} = 0
         rhoS double {mustBePositive} = 1600
         width double {mustBePositive} = 47.17
         exportVideo logical = true
@@ -27,6 +26,12 @@ netFiles = multiFileGlob(caseFolder, netFiles);
 
 if numel(mapFiles) ~= numel(netFiles)
     warning("Mismatch in output files %d net, %d map", numel(netFiles), numel(mapFiles))
+end
+
+% Non-interactive detection
+if isempty(getenv('DISPLAY')) || ~usejava('desktop')
+    warning('No DISPLAY available: switching to headless plotting mode. Figures are invisible.');
+    set(0, 'DefaultFigureVisible', 'off');
 end
 
 %% 2. LOAD TIME SERIES DATA (History File)
