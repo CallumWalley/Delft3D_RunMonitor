@@ -4,7 +4,9 @@ import pyvista as pv
 
 
 class UGridMesh:
-    def __init__(self, filename):
+
+    def __init__(self, filename, varnames=[], time_index=0):
+
         self.filename = filename
 
         # Data containers
@@ -13,10 +15,12 @@ class UGridMesh:
         self.z = None
         self.face_nodes = None
         self.edge_nodes = None
+        self.vars = {}
 
-        self._read()
+        self._read(varnames=varnames, time_index=time_index)
 
-    def _read(self):
+    def _read(self, varnames, time_index):
+
         with Dataset(self.filename, "r") as nc:
             # --- Node coordinates ---
             self.x = nc.variables["mesh2d_node_x"][:]
@@ -56,6 +60,16 @@ class UGridMesh:
                     self.face_nodes
                 )
 
+            # Read the fields
+            for varname in varnames:
+                try:
+                    v = nc.variables[varname]
+                    data = v[time_index, :]
+                    self.vars[varname] = dict(location=getattr(v, 'location', 'node'),
+                                      data=data)
+                except:
+                    raise ValueError(f"ERROR could net read field {varname}")
+
     def __repr__(self):
         return (
             f"UGridMesh2D(\n"
@@ -87,6 +101,18 @@ class UGridMesh:
         faces = np.hstack(faces_list)
 
         mesh = pv.PolyData(points, faces)
+
+        # Add the fields
+        for varname, v in self.vars.items():
+            if v['location'] == 'node':
+                print(v['data'])
+                mesh.point_data[varname] = v['data']
+            elif v['location'] == 'face':
+                mesh.cell_data[varname] = v['data']
+            else:
+                raise ValueError(f"ERROR: location {v['location']} is not supported")
+
+
         return mesh
 
     

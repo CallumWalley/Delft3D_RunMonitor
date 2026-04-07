@@ -1,11 +1,13 @@
 from Delft3D_RunMonitor.ugrid_mesh import UGridMesh
 import defopt
 
-def main(*, mapname: str='FlowFM_0000_map.nc'):
+def main(*, mapname: str='FlowFM_0000_map.nc', varnames: list[str]=["mesh2d_waterdepth"], time_index: int=0):
     """
-    @param mapname: name of the map NetCDF file
+    mapname: name of the map NetCDF file
+    varnames: list of variable names
+    time_index: time index
     """
-    mesh = UGridMesh(mapname)
+    mesh = UGridMesh(mapname, varnames=varnames)
     mesh.plot()
 
 if __name__ == '__main__':
