@@ -116,7 +116,7 @@ class UGridMesh:
         return mesh
 
     
-    def plot(self, show_edges=True):
+    def plot(self, show_edges=False):
         mesh = self.to_pyvista()
         plotter = pv.Plotter()
         plotter.add_mesh(mesh, show_edges=show_edges)
