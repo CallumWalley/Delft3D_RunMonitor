@@ -1,4 +1,4 @@
-function mddPlot(caseFolder, rasterBin, xsFile, hisFile, mapFiles, netFiles, rhoS, width, exportVideo, gridRes)
+function mddPlot(caseFolder, rasterBin, xsFile, hisFile, mapFiles, netFiles, exportVideo, exportImages, exportSTL, nameVideo, nameImages, nameSTL, rhoS, width, gridRes)
     arguments
         caseFolder {mustBeFolder} = '' 
         rasterBin  {mustBeText} = '*.tif'
@@ -6,9 +6,14 @@ function mddPlot(caseFolder, rasterBin, xsFile, hisFile, mapFiles, netFiles, rho
         hisFile    {mustBeText} = '*/*his.nc'  % Relative to 'caseFolder'
         mapFiles   {mustBeText} = '*/*map.nc'  % Relative to 'caseFolder'
         netFiles   {mustBeText} = '*net.nc'    % Relative to 'caseFolder'
+        exportVideo logical = true
+        exportImages logical = false
+        exportSTL logical = false
+        nameVideo {mustBeText} = 'Simulation_Summary.avi'
+        nameImages {mustBeText} = 'images/step_%d.png'
+        nameSTL {mustBeText} = 'Final_Bed_Surface.stl'
         rhoS double {mustBePositive} = 1600
         width double {mustBePositive} = 47.17
-        exportVideo logical = true
         gridRes double {mustBePositive} = 1.0
     end
 
@@ -126,12 +131,6 @@ cmapDod = [r g b];
 xs = load(xsFile);
 xsOrder = [1:2:25, 29 31 33 37 35 39]; 
 
-if exportVideo
-    v = VideoWriter('Simulation_Summary.avi');
-    v.FrameRate = 10;
-    open(v);
-end
-
 fig = figure('Position', [10 370 1280 976], 'Color', 'w');
 tlo = tiledlayout(3, 4, 'TileSpacing', 'Compact');
 
@@ -169,27 +168,29 @@ for a = 2:numSteps
     % This logic can be expanded based on the 'binsraster' logic in original code
     
     drawnow;
-    if exportVideo
+    if exportVideo    
+        v = VideoWriter(nameVideo);
+        v.FrameRate = 10;
+        open(v);
         writeVideo(v, getframe(gcf));
     end
+    if exportImages    
+        imagaName = sprintf(nameImages, a);
+        imwrite(v, getframe(gcf));
+    end
 end
-
-if exportVideo, close(v); end
 
 %% 7. STL EXPORT FOR 3D MODELING (Blender/Unity)
 % -------------------------------------------------------------------------
 % Centering coordinates to avoid large-coordinate jitter in 3D software
-offsetX = floor(min(Xn));
-offsetY = floor(min(Yn));
-verts = [(Xn - offsetX), (Yn - offsetY), ZnNodes];
-TR = triangulation(TRI(:, 1:3), verts);
-stlwrite(TR, 'Final_Bed_Surface.stl');
+if exportSTL
+    offsetX = floor(min(Xn));
+    offsetY = floor(min(Yn));
+    verts = [(Xn - offsetX), (Yn - offsetY), ZnNodes];
+    TR = triangulation(TRI(:, 1:3), verts);
+    stlwrite(TR, nameSTL);
 
-fprintf('Processing complete. STL and Video exported.\n');
-toc;
-
-
-
+    fprintf('Processing complete. STL exported.\n');
 end
 
 % matlab doesn't natively expand globs.
@@ -209,4 +210,5 @@ function [paths] = multiFileGlob(varargin)
     assert(~isempty(dirs), 'No files found matching %s', pattern);
 
     paths = sort(fullfile({dirs.folder}, {dirs.name}));
+end
 end
