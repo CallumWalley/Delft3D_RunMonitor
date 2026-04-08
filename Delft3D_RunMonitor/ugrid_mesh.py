@@ -5,9 +5,7 @@ import pyvista as pv
 
 class UGridMesh:
 
-    def __init__(self, filename, varnames=[], time_index=0):
-
-        self.filename = filename
+    def __init__(self, filename):
 
         # Data containers
         self.x = None
@@ -15,73 +13,61 @@ class UGridMesh:
         self.z = None
         self.face_nodes = None
         self.edge_nodes = None
-        self.vars = {}
+        self.variables = {}
+        self.nc = Dataset(filename, "r")
+        self._readMesh()
 
-        self._read(varnames=varnames, time_index=time_index)
-
-    def _read(self, varnames, time_index):
-
-        with Dataset(self.filename, "r") as nc:
-            # --- Node coordinates ---
-            self.x = nc.variables["mesh2d_node_x"][:]
-            self.y = nc.variables["mesh2d_node_y"][:]
-
-            if "mesh2d_node_z" in nc.variables:
-                self.z = nc.variables["mesh2d_node_z"][:]
-            else:
-                self.z = None
-
-            # --- Edge connectivity ---
-            edge_var = nc.variables["mesh2d_edge_nodes"]
-            self.edge_nodes = edge_var[:].astype(np.int64)
-
-            # Convert to 0-based indexing if needed
-            start_index = getattr(edge_var, "start_index", 0)
-            if start_index != 0:
-                self.edge_nodes -= start_index
-
-            # --- Face connectivity ---
-            face_var = nc.variables["mesh2d_face_nodes"]
-            self.face_nodes = face_var[:].astype(np.int64)
-
-            # Handle fill values (ragged faces)
-            fill_value = getattr(face_var, "_FillValue", None)
-            if fill_value is not None:
-                self.face_nodes = np.where(
-                    self.face_nodes == fill_value, -1, self.face_nodes
-                )
-
-            # Convert to 0-based indexing
-            start_index = getattr(face_var, "start_index", 0)
-            if start_index != 0:
-                self.face_nodes = np.where(
-                    self.face_nodes >= 0,
-                    self.face_nodes - start_index,
-                    self.face_nodes
-                )
-
-            # Read the fields
-            for varname in varnames:
-                try:
-                    v = nc.variables[varname]
-                    data = v[time_index, :]
-                    self.vars[varname] = dict(location=getattr(v, 'location', 'node'),
-                                      data=data)
-                except:
-                    raise ValueError(f"ERROR could net read field {varname}")
-
-    def __repr__(self):
-        return (
-            f"UGridMesh2D(\n"
-            f"  nodes: {len(self.x)},\n"
-            f"  edges: {len(self.edge_nodes)},\n"
-            f"  faces: {len(self.face_nodes)}\n"
-            f")"
-        )
-    
-    def to_pyvista(self):
+    def _readMesh(self):
         """
-        Convert mesh to a PyVista PolyData object.
+        Read the UGrid mesh (points and connectivity)
+        """
+        # --- Node coordinates ---
+        self.x = self.nc.variables["mesh2d_node_x"][:]
+        self.y = self.nc.variables["mesh2d_node_y"][:]
+
+        if "mesh2d_node_z" in self.nc.variables:
+            self.z = self.nc.variables["mesh2d_node_z"][:]
+        else:
+            self.z = None
+
+        # --- Edge connectivity ---
+        edge_var = self.nc.variables["mesh2d_edge_nodes"]
+        self.edge_nodes = edge_var[:].astype(np.int64)
+
+        # Convert to 0-based indexing if needed
+        start_index = getattr(edge_var, "start_index", 0)
+        if start_index != 0:
+            self.edge_nodes -= start_index
+
+        # --- Face connectivity ---
+        face_var = self.nc.variables["mesh2d_face_nodes"]
+        self.face_nodes = face_var[:].astype(np.int64)
+
+        # Handle fill values (ragged faces)
+        fill_value = getattr(face_var, "_FillValue", None)
+        if fill_value is not None:
+            self.face_nodes = np.where(
+                self.face_nodes == fill_value, -1, self.face_nodes
+            )
+
+        # Convert to 0-based indexing
+        start_index = getattr(face_var, "start_index", 0)
+        if start_index != 0:
+            self.face_nodes = np.where(
+                self.face_nodes >= 0,
+                self.face_nodes - start_index,
+                self.face_nodes
+            )
+
+    def _readField(self, varname, time_index):
+        """
+        Read the field values at time time_index from the NetCDF file
+        """
+        return self.nc.variables[varname][time_index, :]
+    
+    def _buildVTKPolyData(self):
+        """
+        Build the VTK PolyData object
         """
         # Points (N, 3)
         points = np.column_stack((self.x, self.y, self.z))
@@ -100,24 +86,33 @@ class UGridMesh:
 
         faces = np.hstack(faces_list)
 
-        mesh = pv.PolyData(points, faces)
-
-        # Add the fields
-        for varname, v in self.vars.items():
-            if v['location'] == 'node':
-                print(v['data'])
-                mesh.point_data[varname] = v['data']
-            elif v['location'] == 'face':
-                mesh.cell_data[varname] = v['data']
-            else:
-                raise ValueError(f"ERROR: location {v['location']} is not supported")
-
-
-        return mesh
+        return pv.PolyData(points, faces)
 
     
-    def plot(self, show_edges=False):
-        mesh = self.to_pyvista()
+    def to_pyvista(self, varname, time_index):
+        """
+        Convert mesh to a PyVista PolyData object.
+        """
+        polydata = self._buildVTKPolyData()
+
+        # Read and add the fields
+        v = self.nc.variables[varname]
+        data = self._readField(varname, time_index)
+        location = getattr(v, 'location', 'node')
+        if location == 'node':
+            polydata.point_data[varname] = data
+        elif location == 'face':
+            polydata.cell_data[varname] = data
+        else:
+            raise ValueError(f"ERROR: location {v['location']} is not supported")
+
+        return polydata
+    
+    def plot(self, varname, time_index, show_edges=False):
+        """
+        Plot field at time index
+        """
+        polydata = self.to_pyvista(varname, time_index)
         plotter = pv.Plotter()
-        plotter.add_mesh(mesh, show_edges=show_edges)
+        plotter.add_mesh(polydata, show_edges=show_edges)
         plotter.show()
