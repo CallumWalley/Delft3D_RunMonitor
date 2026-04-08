@@ -108,11 +108,11 @@ class UGridMesh:
 
         return polydata
     
-    def plot(self, varname, time_index, show_edges=False):
+    def plot(self, varname, time_index, cmap='plasma', clim=None, show_edges=False):
         """
         Plot field at time index
         """
         polydata = self.to_pyvista(varname, time_index)
         plotter = pv.Plotter()
-        plotter.add_mesh(polydata, show_edges=show_edges)
+        plotter.add_mesh(polydata, show_edges=show_edges, clim=clim, cmap=cmap)
         plotter.show()
