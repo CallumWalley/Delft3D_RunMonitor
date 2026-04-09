@@ -18,8 +18,6 @@ pip install -e .
 ```
 This will also install dependencies.
 
-The software relies on libGL. On mahuika: `module load Mesa`.
-
 Run some examples, for instance
 ```
 python examples/multiple_partitions.py -m data/FlowFM_\*_map.nc \
@@ -31,6 +29,12 @@ This will display the water depth at time index 3. Note the backslash `\*`. Type
 python examples/multiple_partitions.py -h
 ```
 to see the list of options.
+
+To generate a movie
+```
+DISPLAY= python examples/multiple_partitions_movie.py -m /nesi/project/nesi99999/app_examples/Delft3D/jon/DFM_OUTPUT_FlowFM/FlowFM_00\*_map.nc -v mesh2d_waterdepth --cmin=0 --cmax=3
+```
+The setting of `DISPLAY=` to empty prevents an OpenGL error on mahuika.
 
 
 ## Features
