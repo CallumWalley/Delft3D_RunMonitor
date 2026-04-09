@@ -22,7 +22,8 @@ dependencies = [
     "defopt",
     "numpy",
     "netCDF4",
-    "pyvista"
+    "pyvista",
+    "imageio[ffmpeg]", "imageio[pyav]"
 ]
 
 [project.urls]

@@ -1,6 +1,5 @@
 import numpy as np
 import pyvista as pv
-import vtk
 from .ugrid_mesh import UGridMesh
 
 
@@ -12,8 +11,10 @@ class MultiUGridMesh(UGridMesh):
         ----------
         filenames : list of map filenames
         """
-
         self.meshes = [UGridMesh(fn) for fn in filenames]
+        self.time = 0
+        if len(self.meshes) > 0:
+            self.time = self.meshes[0].time
 
     def to_pyvista(self, varname, time_index):
         """

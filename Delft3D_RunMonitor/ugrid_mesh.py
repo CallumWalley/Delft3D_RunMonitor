@@ -8,6 +8,7 @@ class UGridMesh:
     def __init__(self, filename):
 
         # Data containers
+        self.time = None
         self.x = None
         self.y = None
         self.z = None
@@ -21,6 +22,9 @@ class UGridMesh:
         """
         Read the UGrid mesh (points and connectivity)
         """
+        # --- Time ---
+        self.time = self.nc.variables["time"]
+
         # --- Node coordinates ---
         self.x = self.nc.variables["mesh2d_node_x"][:]
         self.y = self.nc.variables["mesh2d_node_y"][:]
@@ -87,7 +91,6 @@ class UGridMesh:
         faces = np.hstack(faces_list)
 
         return pv.PolyData(points, faces)
-
     
     def to_pyvista(self, varname, time_index):
         """
@@ -116,3 +119,15 @@ class UGridMesh:
         plotter = pv.Plotter()
         plotter.add_mesh(polydata, show_edges=show_edges, clim=clim, cmap=cmap)
         plotter.show()
+
+    def movie(self, varname, moviefile="animation.mp4", clim=None):
+        """
+        Make movie
+        """
+        plotter = pv.Plotter(off_screen=True)
+        plotter.open_movie(moviefile)        
+        for time_index in range(len(self.time)):
+            plotter.clear()
+            plotter.add_mesh(self.to_pyvista(varname, time_index), scalars=varname, clim=clim)
+            plotter.write_frame()
+        plotter.close()
