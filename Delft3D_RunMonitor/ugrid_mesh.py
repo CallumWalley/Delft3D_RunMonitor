@@ -1,6 +1,7 @@
 import numpy as np
 from netCDF4 import Dataset
 import pyvista as pv
+import time
 
 
 class UGridMesh:
@@ -14,7 +15,6 @@ class UGridMesh:
         self.z = None
         self.face_nodes = None
         self.edge_nodes = None
-        self.variables = {}
         self.nc = Dataset(filename, "r")
         self._readMesh()
 
@@ -124,10 +124,18 @@ class UGridMesh:
         """
         Make movie
         """
+        tic = time.time()
+        pv.OFF_SCREEN = True
+
         plotter = pv.Plotter(off_screen=True)
-        plotter.open_movie(moviefile)        
-        for time_index in range(len(self.time)):
+        plotter.open_movie(moviefile)
+        nt = len(self.time)       
+        for time_index in range(nt):
+            print(f'time index {time_index}')
             plotter.clear()
-            plotter.add_mesh(self.to_pyvista(varname, time_index), scalars=varname, clim=clim)
+            plotter.add_mesh(self.to_pyvista(varname=varname, time_index=time_index), scalars=varname, clim=clim)
             plotter.write_frame()
         plotter.close()
+
+        toc = time.time()
+        print(f'time to create {nt} frames: {toc - tic:.2f} s ({(toc - tic)/nt:.2f} s/frame)')
