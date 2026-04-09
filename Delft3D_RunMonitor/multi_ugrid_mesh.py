@@ -25,16 +25,20 @@ class MultiUGridMesh(UGridMesh):
         polydata = pv.merge([m.to_pyvista(varname, time_index) for m in self.meshes])
         return polydata
 
-    def movie(self, varname, moviefile="animation.mp4", clim=None):
+    def movie(self, varname, moviefile="animation.mp4", t0=0, t1=-1, clim=None):
         """
         Make movie
+        : varname: variable name
+        : moviefile: output file
+        : t0: first time index
+        : t1: one beyond last time index
         """
         # We could just call movie from UGridMesh but this implementation is 2-3 times faster
 
         tic = time.time()
         pv.OFF_SCREEN = True
 
-        # get the mesh
+        # get the mesh, should have at least one time step. Assume the mesh does not change
         polydata = self.to_pyvista(varname=varname, time_index=0)
 
         data_ptr = None
@@ -48,8 +52,16 @@ class MultiUGridMesh(UGridMesh):
 
         plotter = pv.Plotter(off_screen=True)
         plotter.open_movie(moviefile)
-        nt = len(self.time)       
-        for time_index in range(nt):
+        nt = len(self.time)
+        # allow t0 and t1 to be negative, -1 means last index
+        if t1 < 0:
+            t1 = nt + t1
+        if t0 < 0:
+            t0 = nt + t0
+        t0 = min(nt, t0)
+        t1 = min(nt, t1)
+        print(f't0 = {t0} t1 = {t1}') 
+        for time_index in range(t0, t1):
             print(f'time index {time_index}')
             plotter.clear()
             # iterate over meshes
@@ -64,7 +76,7 @@ class MultiUGridMesh(UGridMesh):
         plotter.close()
 
         toc = time.time()
-        print(f'time to create {nt} frames: {toc - tic:.2f} s ({(toc - tic)/nt:.2f} s/frame)')
+        print(f'time to create {t1 - t0} frames: {toc - tic:.2f} s ({(toc - tic)/(t1 - t0):.2f} s/frame)')
 
     
 

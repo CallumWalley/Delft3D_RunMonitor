@@ -32,7 +32,9 @@ to see the list of options.
 
 To generate a movie
 ```
-DISPLAY= python examples/multiple_partitions_movie.py -m /nesi/project/nesi99999/app_examples/Delft3D/jon/DFM_OUTPUT_FlowFM/FlowFM_00\*_map.nc -v mesh2d_waterdepth --cmin=0 --cmax=3
+DISPLAY= python examples/multiple_partitions_movie.py \
+                -m /nesi/project/nesi99999/app_examples/Delft3D/jon/DFM_OUTPUT_FlowFM/FlowFM_00\*_map.nc \
+                -v mesh2d_waterdepth --cmin=0 --cmax=3 --t0=2 --t1=10
 ```
 The setting of `DISPLAY=` to empty prevents an OpenGL error on mahuika.
 
