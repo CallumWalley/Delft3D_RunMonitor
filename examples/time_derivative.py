@@ -40,7 +40,10 @@ def main(*, mappattern: str='FlowFM_*_map.nc', varname: str='mesh2d_waterdepth')
         field1 = mugm.readField(varname='mesh2d_waterdepth', time_index=i1)
         df[:] = (field1 - field0)/dt
         # save the file
-        polydata.save(f'{dvarname}_{i0:04}.ply')
+        polydata.save(f'{dvarname}_{i0:04}.vtp')
+
+        field0 = field1
+
 
 if __name__ == '__main__':
     defopt.run(main)
