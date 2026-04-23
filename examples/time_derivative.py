@@ -1,6 +1,6 @@
 import defopt
 from glob import glob
-from Delft3D_RunMonitor.multi_ugrid_mesh import MultiUGridMesh
+from Delft3D_RunMonitor import MultiUGridMesh
 import numpy as np
 
 def main(*, mappattern: str='FlowFM_*_map.nc', varname: str='mesh2d_waterdepth'):

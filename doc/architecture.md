@@ -43,11 +43,12 @@ mugm = MultiUGridMesh(filenames)
 time = mugm.meshes[0].time[:]
 nt = len(time)
 
-# data at the first time step
+# read the data at the first time step
 field0 = mugm.readField(varname=varname, time_index=0)
 
-# convert mesh to VTK
+# convert the mesh to VTK
 polydata = mugm.to_pyvista()
+
 # allocate memory for the derivative
 df = np.empty_like(field0)
 polydata.cell_data[dvarname] = df
