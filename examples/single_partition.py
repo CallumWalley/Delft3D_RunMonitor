@@ -1,14 +1,58 @@
 from Delft3D_RunMonitor import UGridMesh
 import defopt
+from netCDF4 import Dataset
+import time
+import numpy as np
 
-def main(*, mapname: str='FlowFM_0000_map.nc', varname: str="mesh2d_waterdepth", time_index: int=0):
+
+def main(*, mapname: str='FlowFM_0000_map.nc', start_time: int=0, end_time: int=None):
     """
     mapname: name of the map NetCDF file
     varname: variable name
     time_index: time index
     """
-    mesh = UGridMesh(mapname)
-    mesh.plot(varname, time_index)
+    ugrid = UGridMesh(mapname)
+    bedlevelt0 = ugrid._readField('mesh2d_s1', 0) - ugrid._readField('mesh2d_dg', 0)
+
+    pl = pv.Plotter(shape=(1, 2))
+    # Create separate mesh objects for each subplot
+    mesh_waterdepth = ugrid._buildVTKPolyData().copy()
+    mesh_dod = ugrid._buildVTKPolyData().copy()
+
+
+    # Set initial cell data for dod
+    mesh_dod.cell_data["dod"] = bedlevelt0
+
+    # Add initial meshes to each subplot
+    pl.subplot(0, 0)
+    pl.add_mesh(mesh_waterdepth, scalars=ugrid._readField('mesh2d_waterdepth', 0), name="waterdepth")
+    pl.subplot(0, 1)
+    pl.add_mesh(mesh_dod, scalars="dod", name="dod")
+    pl.show(auto_close=False)
+
+
+    # Determine the number of timesteps
+    end_time = len(ugrid.time) if end_time is None else end_time
+    
+    time_indices = range(start_time, end_time)
+
+    for time_index in time_indices:
+        bedlevel = ugrid._readField('mesh2d_s1', time_index) - ugrid._readField('mesh2d_dg', time_index)
+        dod = bedlevel - bedlevelt0
+
+        # Update cell data on each mesh independently
+        mesh_waterdepth.cell_data["waterdepth"] = ugrid._readField('mesh2d_waterdepth', time_index)
+        mesh_dod.cell_data["dod"] = dod
+
+        # Update title for the first subplot only
+        pl.subplot(0, 0)
+        pl.add_title(f"t={time_index}/{end_time}", color='black')
+
+        pl.render()
+        
+        time.sleep(0.1)
+
+    pl.close()
 
 if __name__ == '__main__':
     defopt.run(main)
