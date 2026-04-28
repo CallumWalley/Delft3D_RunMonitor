@@ -1,5 +1,4 @@
-from Delft3D_RunMonitor.ugrid_mesh import UGridMesh
-import pyvista as pv
+from Delft3D_RunMonitor import UGridMesh
 import defopt
 from netCDF4 import Dataset
 import time

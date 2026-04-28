@@ -5,32 +5,51 @@ import time
 
 
 class MultiUGridMesh(UGridMesh):
+    """
+    A class that combines data and grid stored in mutiple partitions
+    """
 
     def __init__(self, filenames):
         """
-        Parameters
-        ----------
-        filenames : list of map filenames
+        Constructor
+
+        :param filenames: list of map filenames
         """
         self.meshes = [UGridMesh(fn) for fn in filenames]
         self.time = 0
         if len(self.meshes) > 0:
             self.time = self.meshes[0].time
 
-    def to_pyvista(self, varname, time_index):
+    def readField(self, varname: str, time_index: int):
         """
-        Convert mesh to a PyVista PolyData object.
+        Read the field values at time time_index from the NetCDF file
+
+        :param varname: variable name
+        :param time_index: time index
+        """
+        data_list = [m.readField(varname=varname, time_index=time_index) for m in self.meshes]
+        return np.concatenate(data_list)
+
+
+    def to_pyvista(self, varname=None, time_index=None):
+        """
+        Convert mesh to a PyVista PolyData object
+
+        :param varname: variable name
+        :param time_index: time index
         """
         polydata = pv.merge([m.to_pyvista(varname, time_index) for m in self.meshes])
         return polydata
 
-    def movie(self, varname, moviefile="animation.mp4", t0=0, t1=-1, clim=None):
+    def movie(self, varname, moviefile: str="animation.mp4", t0: int=0, t1: int=-1, clim=None):
         """
         Make movie
-        : varname: variable name
-        : moviefile: output file
-        : t0: first time index
-        : t1: one beyond last time index
+        
+        :param varname: variable name
+        :param moviefile: output file
+        :param t0: first time index
+        :param t1: one beyond last time index
+        :param clim: (cmin, cmax) tuple. cmin and cmax are the min/max values of the color map
         """
         # We could just call movie from UGridMesh but this implementation is 2-3 times faster
 
@@ -40,14 +59,15 @@ class MultiUGridMesh(UGridMesh):
         # get the mesh, should have at least one time step. Assume the mesh does not change
         polydata = self.to_pyvista(varname=varname, time_index=0)
 
-        data_ptr = None
+        # set the data_ptr to either point or cell data
+        # try cell data first
         data_ptr = polydata.cell_data.get(varname, None)
         if data_ptr is None:
+            # maybe point data?
             data_ptr = polydata.point_data.get(varname, None)
         if data_ptr is None:
+            # could not find any acceptable staggering
             raise RuntimeError(f'ERROR could not find data {varname}')
-
-        data_list = [m._readField(varname=varname, time_index=0) for m in self.meshes]
 
         plotter = pv.Plotter(off_screen=True)
         plotter.open_movie(moviefile)
@@ -63,13 +83,8 @@ class MultiUGridMesh(UGridMesh):
         for time_index in range(t0, t1):
             print(f'time index {time_index}')
             plotter.clear()
-            # iterate over meshes
-            for i in range(len(self.meshes)):
-                m = self.meshes[i]
-                # read the data
-                data_list[i][:] = m._readField(varname=varname, time_index=time_index)
-            # merge the data
-            data_ptr[:] = np.concatenate(data_list)
+            # read and set the field values
+            data_ptr[:] = self.readField(varname=varname, time_index=time_index)
             plotter.add_mesh(polydata, scalars=varname, clim=clim)
             plotter.write_frame()
         plotter.close()
