@@ -22,8 +22,7 @@ This will also install dependencies.
 
 Run some examples, for instance
 ```
-python examples/multiple_partitions.py -m data/FlowFM_\*_map.nc \
-                                       -v mesh2d_waterdepth \
+python examples/multiple_partitions.py -m nesi/project/nesi99999/app_examples/Delft3D/jon/DFM_OUTPUT_FlowFM/FlowFM_00\*_map.nc \
                                        -t 3
 ```
 This will display the water depth at time index 3. Note the backslash `\*`. Type 
@@ -36,7 +35,7 @@ To generate a movie
 ```
 DISPLAY= python examples/multiple_partitions_movie.py \
                 -m /nesi/project/nesi99999/app_examples/Delft3D/jon/DFM_OUTPUT_FlowFM/FlowFM_00\*_map.nc \
-                -v mesh2d_waterdepth --cmin=0 --cmax=3 --t0=2 --t1=10
+                --cmin=0 --cmax=3 --t0=2 --t1=10
 ```
 The setting of `DISPLAY=` to empty prevents an OpenGL error on mahuika.
 
