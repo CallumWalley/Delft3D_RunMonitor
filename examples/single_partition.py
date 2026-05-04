@@ -12,7 +12,7 @@ def main(*, mapname: str='FlowFM_0000_map.nc', start_time: int=0, end_time: int=
     time_index: time index
     """
     ugrid = UGridMesh(mapname)
-    bedlevelt0 = ugrid._readField('mesh2d_s1', 0) - ugrid._readField('mesh2d_dg', 0)
+    bedlevelt0 = ugrid.readField('mesh2d_s1', 0) - ugrid.readField('mesh2d_dg', 0)
 
     pl = pv.Plotter(shape=(1, 2))
     # Create separate mesh objects for each subplot
@@ -25,7 +25,7 @@ def main(*, mapname: str='FlowFM_0000_map.nc', start_time: int=0, end_time: int=
 
     # Add initial meshes to each subplot
     pl.subplot(0, 0)
-    pl.add_mesh(mesh_waterdepth, scalars=ugrid._readField('mesh2d_waterdepth', 0), name="waterdepth")
+    pl.add_mesh(mesh_waterdepth, scalars=ugrid.readField('mesh2d_waterdepth', 0), name="waterdepth")
     pl.subplot(0, 1)
     pl.add_mesh(mesh_dod, scalars="dod", name="dod")
     pl.show(auto_close=False)
@@ -37,11 +37,11 @@ def main(*, mapname: str='FlowFM_0000_map.nc', start_time: int=0, end_time: int=
     time_indices = range(start_time, end_time)
 
     for time_index in time_indices:
-        bedlevel = ugrid._readField('mesh2d_s1', time_index) - ugrid._readField('mesh2d_dg', time_index)
+        bedlevel = ugrid.readField('mesh2d_s1', time_index) - ugrid.readField('mesh2d_dg', time_index)
         dod = bedlevel - bedlevelt0
 
         # Update cell data on each mesh independently
-        mesh_waterdepth.cell_data["waterdepth"] = ugrid._readField('mesh2d_waterdepth', time_index)
+        mesh_waterdepth.cell_data["waterdepth"] = ugrid.readField('mesh2d_waterdepth', time_index)
         mesh_dod.cell_data["dod"] = dod
 
         # Update title for the first subplot only
