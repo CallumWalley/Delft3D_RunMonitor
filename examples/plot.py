@@ -9,12 +9,15 @@ import pyvista as pv
 def main(*, mappattern: str='FlowFM_*_map.nc', start_time: int=0, end_time: int=None,
          cmin: float=None, cmax: float=None, xs_file: str=None):
     """
-    mappattern: glob pattern for map files (or a single filename)
-    start_time: first frame to plot
-    end_time: last frame to plot (exclusive, default: all)
-    cmin: minimum colour scale value
-    cmax: maximum colour scale value
-    xs_file: path to cross-section point-pair file (optional)
+    Plot one or more map files.
+
+    Args:
+        mappattern: Glob pattern for map files, or a single filename.
+        start_time: First frame to plot.
+        end_time: Last frame to plot (exclusive). Defaults to all frames.
+        cmin: Minimum colour scale value.
+        cmax: Maximum colour scale value.
+        xs_file: Optional path to a cross-section point-pair file
     """
     ugrid = MultiUGridMesh(sorted(glob(mappattern)))
     end_time = end_time or len(ugrid.time)
