@@ -37,10 +37,14 @@ def main(*, mappattern: str='FlowFM_*_map.nc', start_time: int=0, end_time: int=
     pl.add_mesh(polymesh, scalars="waterdepth", clim=clim_wd, scalar_bar_args=bar)
     if xs_mesh:
         add_xs_overlay(pl, xs_mesh)
+
     pl.subplot(0, 1)
     pl.add_mesh(polymesh, scalars="dod", clim=clim_dod, cmap="bwr", scalar_bar_args=bar)
     if xs_mesh:
         add_xs_overlay(pl, xs_mesh)
+
+    pl.link_views()
+    
     pl.show(auto_close=False)
 
     for time_index in range(start_time, end_time):
