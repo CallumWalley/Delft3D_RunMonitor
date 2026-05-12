@@ -23,7 +23,9 @@ dependencies = [
     "numpy",
     "netCDF4",
     "pyvista",
-    "imageio[ffmpeg]", "imageio[pyav]"
+    "imageio[ffmpeg]", "imageio[pyav]",
+    "pytest",
+    "matplotlib",
 ]
 
 [project.urls]
@@ -35,4 +37,7 @@ Repository = "https://github.com/yourusername/Delft3D_RunMonitor"
 where = ["."]
 include = ["Delft3D_RunMonitor*"]
 
+[tool.pytest.ini_options]
+addopts = ""
+testpaths = ["tests"]
 
