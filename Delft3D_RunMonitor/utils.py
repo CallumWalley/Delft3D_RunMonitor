@@ -1,83 +1,85 @@
 import numpy as np
+from scipy.spatial import cKDTree
+from scipy.sparse import csr_matrix
+from scipy.sparse.csgraph import shortest_path
 
 
-def compute_centerline(points, triangles, ds):
+def compute_centerline(points, triangles, ds, k=6):
     """
-    Compute an approximate river centerline from a triangular mesh.
-
-    Args:
-        points:
-            Array of node coordinates of shape (npoints, 2).
-
-        triangles:
-            Triangle connectivity array of shape (ntri, 3).
-
-        ds:
-            Desired spacing between centerline points.
-
-    Returns:
-        List of (x, y) tuples representing the centerline.
+    Robust centerline extraction from triangular mesh using graph geodesics.
     """
 
     # ---------------------------------------------------------
-    # Compute triangle centroids
+    # 1. triangle centroids
     # ---------------------------------------------------------
+    tri_pts = points[triangles]
+    centroids = tri_pts.mean(axis=1)
 
-    tri_pts = points[triangles]          # (ntri, 3, 2)
-    centroids = tri_pts.mean(axis=1)     # (ntri, 2)
-
-    # ---------------------------------------------------------
-    # Estimate dominant river direction using PCA
-    # ---------------------------------------------------------
-
-    mean_xy = centroids.mean(axis=0)
-
-    X = centroids - mean_xy
-
-    # Singular value decomposition
-    _, _, vh = np.linalg.svd(X, full_matrices=False)
-
-    # Main river direction
-    tangent = vh[0]
-
-    # Transverse direction
-    normal = np.array([-tangent[1], tangent[0]])
+    n = len(centroids)
 
     # ---------------------------------------------------------
-    # Project centroids into curvilinear coordinates
+    # 2. build k-nearest-neighbour graph
     # ---------------------------------------------------------
+    tree = cKDTree(centroids)
+    dists, idxs = tree.query(centroids, k=12) #k=k+1)
 
-    s = X @ tangent
-    n = X @ normal
+    rows = []
+    cols = []
+    data = []
+
+    for i in range(n):
+        for j, d in zip(idxs[i][1:], dists[i][1:]):
+            # keep only short edges (important!)
+            if d < np.percentile(dists[:, 1:], 30):
+                rows.append(i)
+                cols.append(j)
+                data.append(d)
+
+    G = csr_matrix((data, (rows, cols)), shape=(n, n))
+    G = G.maximum(G.T)
 
     # ---------------------------------------------------------
-    # Build bins along the river axis
+    # 3. approximate diameter endpoints
     # ---------------------------------------------------------
+    d0 = shortest_path(G, directed=False, indices=0)
+    a = np.argmax(d0)
 
-    smin = s.min()
-    smax = s.max()
-
-    sbins = np.arange(smin, smax + ds, ds)
-
-    centerline = []
+    d1 = shortest_path(G, directed=False, indices=a)
+    b = np.argmax(d1)
 
     # ---------------------------------------------------------
-    # Average transverse location in each bin
+    # 4. shortest path between endpoints
     # ---------------------------------------------------------
+    dist, pred = shortest_path(
+        G,
+        directed=False,
+        indices=a,
+        return_predecessors=True
+    )
 
-    for s0 in sbins:
+    # reconstruct path
+    path = []
+    cur = b
+    while cur != a:
+        path.append(cur)
+        cur = pred[cur]
+        if cur == -9999:
+            raise RuntimeError("Path reconstruction failed")
 
-        mask = (s >= s0) & (s < s0 + ds)
+    path.append(a)
+    path = path[::-1]
 
-        if np.count_nonzero(mask) < 3:
-            continue
+    line = centroids[path]
 
-        sm = np.mean(s[mask])
-        nm = np.mean(n[mask])
+    # ---------------------------------------------------------
+    # 5. resample by arc-length
+    # ---------------------------------------------------------
+    seg = np.sqrt(np.sum(np.diff(line, axis=0)**2, axis=1))
+    s = np.concatenate([[0], np.cumsum(seg)])
 
-        # Convert back to x,y
-        xy = mean_xy + sm * tangent + nm * normal
+    s_new = np.arange(0, s[-1], ds)
 
-        centerline.append((xy[0], xy[1]))
+    x = np.interp(s_new, s, line[:, 0])
+    y = np.interp(s_new, s, line[:, 1])
 
-    return centerline
+    return np.column_stack([x, y])
