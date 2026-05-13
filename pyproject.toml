@@ -28,6 +28,7 @@ dependencies = [
     "pytest",
     "matplotlib",
     "pytriangle",
+    "scikit-learn",
 ]
 
 [project.urls]
