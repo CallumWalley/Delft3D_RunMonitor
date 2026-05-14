@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from triangle import Triangle
 
-from Delft3D_RunMonitor import compute_clipped_volume
+from Delft3D_RunMonitor import compute_clipped_volume, VolumeIntegrator
  
 def test_simple():
 
@@ -46,9 +46,19 @@ def test_simple():
 
     ncells = triangles.shape[0]
     heights = np.ones((ncells,), float)
+
+    exact_volume = (x1 - x0) * (y1 - y0)
+
+    # try the slow method
     volume = compute_clipped_volume(points, triangles, heights, clip_polygon_coords)
     print(f'volume = {volume}')
 
-    exact_volume = (x1 - x0) * (y1 - y0)
     assert abs(volume - exact_volume) < 1.e-10
+
+    # this should be faster
+    vi = VolumeIntegrator(points, triangles, clip_polygon_coords)
+    volume = vi.get_volume(heights)
+    assert abs(volume - exact_volume) < 1.e-10
+
+
 
