@@ -1,0 +1,54 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from triangle import Triangle
+
+from Delft3D_RunMonitor import compute_clipped_volume
+ 
+def test_simple():
+
+    # ---------------------------------------------------------
+    # 1. triangulated domain a square
+    # ---------------------------------------------------------
+    ns1 = 5
+    ns = ns1 - 1
+    ds = 1.0 / (ns1 - 1)
+    x0, y0 = 0.3, 0.3
+    x1, y1 = 0.7, 0.9
+    clip_polygon_coords = np.array(
+        [(x0, y0),
+         (x1, y0),
+         (x1, y1),
+         (x0, y1)]
+
+    )
+    xyb = [(i*ds, 0.0) for i in range(ns)] + \
+          [(1.0, i*ds) for i in range(ns)] + \
+          [(1.0 - i*ds, 1.0) for i in range(ns)] + \
+          [(0.0, 1.0 - i*ds) for i in range(ns)]
+    n = len(xyb)
+    markers = [1 for _ in range(n)]
+    segs = [(i, i + 1) for i in range(n)] + [(n - 1, 0)]
+
+    print(f'xyb = {xyb}')
+    print(f'segs = {segs}')
+
+    tri = Triangle()
+    tri.set_points(xyb, markers=markers)
+    tri.set_segments(segs)
+    tri.triangulate(area=0.5, mode='pzq10eQ')
+
+    points = np.asarray([xy[0] for xy in tri.get_points()])
+    triangles = np.asarray([t[0] for t in tri.get_triangles()])
+
+    print(f'points = {points}')
+    print(f'triangles = {triangles}')
+    print(f'tri.get_triangles() = {tri.get_triangles()}')
+
+    ncells = triangles.shape[0]
+    heights = np.ones((ncells,), float)
+    volume = compute_clipped_volume(points, triangles, heights, clip_polygon_coords)
+    print(f'volume = {volume}')
+
+    exact_volume = (x1 - x0) * (y1 - y0)
+    assert abs(volume - exact_volume) < 1.e-10
+

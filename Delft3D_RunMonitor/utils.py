@@ -62,3 +62,69 @@ def calculate_clean_centerline(points, num_clusters=20, num_output_points=100, s
     centerline = splev(u_new, tck)
     
     return np.array(centerline).T
+
+import numpy as np
+from shapely.geometry import Polygon
+
+
+def triangle_area(coords):
+    """
+    Compute polygon area from coordinates.
+    """
+    x = coords[:, 0]
+    y = coords[:, 1]
+
+    return 0.5 * abs(
+        np.dot(x, np.roll(y, -1))
+        - np.dot(y, np.roll(x, -1))
+    )
+
+
+def compute_clipped_volume(
+    points,
+    triangles,
+    height,
+    clip_polygon_coords,
+):
+    """
+    Compute volume inside a polygonal region.
+
+    Parameters
+    ----------
+    points : (npoints, 2) array
+        Mesh node coordinates.
+
+    triangles : (ncells, 3) int array
+        Triangle connectivity.
+
+    height : (ncells,) array
+        Cell-centered height values.
+
+    clip_polygon_coords : (npoly, 2) array
+        Coordinates defining clipping polygon.
+
+    Returns
+    -------
+    volume : float
+    """
+
+    clip_poly = Polygon(clip_polygon_coords)
+
+    volume = 0.0
+
+    for icell, tri in enumerate(triangles):
+
+        tri_coords = points[tri]
+
+        tri_poly = Polygon(tri_coords)
+
+        inter = tri_poly.intersection(clip_poly)
+
+        if inter.is_empty:
+            continue
+
+        area = inter.area
+
+        volume += height[icell] * area
+
+    return volume

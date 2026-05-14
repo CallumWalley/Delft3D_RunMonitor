@@ -27,8 +27,9 @@ dependencies = [
     "imageio[ffmpeg]", "imageio[pyav]",
     "pytest",
     "matplotlib",
-    "pytriangle",
     "scikit-learn",
+    "shapely",
+    "pytriangle",
 ]
 
 [project.urls]
