@@ -67,12 +67,11 @@ def test_snake_river():
     # --------------------------------------------------------- 
     xyc = calculate_clean_centerline(points, num_clusters=20, num_output_points=100, stiffness=5000.0)
     print(f'xyc = {xyc}')
-    plt.figure()
-    triangles = []
-    plt.scatter(points[:, 0], points[:, 1])
-    plt.plot(xyc[:,0], xyc[:,1], 'r-')
-    plt.gca().set_aspect('equal') # Keep aspect ratio correct
-    plt.show()
+    # plt.figure()
+    # plt.scatter(points[:, 0], points[:, 1])
+    # plt.plot(xyc[:,0], xyc[:,1], 'r-')
+    # plt.gca().set_aspect('equal') # Keep aspect ratio correct
+    # plt.show()
 
     # ---------------------------------------------------------
     # 4. checks
