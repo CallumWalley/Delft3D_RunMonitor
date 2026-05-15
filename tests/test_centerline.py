@@ -26,7 +26,7 @@ def test_curved_river():
     # ---------------------------------------------------------
     # 3. compute centerline
     # --------------------------------------------------------- 
-    xyc = calculate_clean_centerline(points, num_clusters=20, num_output_points=100, stiffness=5000.0)
+    xyc = calculate_clean_centerline(points, num_clusters=20, num_segments=100, stiffness=5000.0)
     print(f'xyc = {xyc}')
     # plt.figure()
     # triangles = []
@@ -65,7 +65,7 @@ def test_snake_river():
     # ---------------------------------------------------------
     # 3. compute centerline
     # --------------------------------------------------------- 
-    xyc = calculate_clean_centerline(points, num_clusters=20, num_output_points=100, stiffness=5000.0)
+    xyc = calculate_clean_centerline(points, num_clusters=20, num_segments=100, stiffness=5000.0)
     print(f'xyc = {xyc}')
     # plt.figure()
     # plt.scatter(points[:, 0], points[:, 1])
