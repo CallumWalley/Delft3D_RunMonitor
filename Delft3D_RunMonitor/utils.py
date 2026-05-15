@@ -3,7 +3,132 @@ import numpy as np
 from scipy.interpolate import splprep, splev, interp1d
 
 from sklearn.cluster import KMeans
-from shapely.geometry import Polygon
+from shapely.geometry import LineString, Polygon
+
+def perpendicular_cross_section(
+    point,
+    centerline,
+    points,
+    triangles,
+):
+    """
+    Given a point on a centerline and a triangulation,
+    compute the two intersection points of the perpendicular line
+    with the mesh boundary.
+
+    Returns
+    -------
+    n : (2,) ndarray
+        Unit normal vector to centerline at the point.
+
+    t : (2,) ndarray
+        Scalar parameters along the normal direction:
+        p0 + t[i] * n
+
+    x : (2,2) ndarray
+        The two intersection points in physical space.
+    """
+
+    #
+    # 1. Find closest centerline segment
+    #
+    centerline = np.asarray(centerline)
+
+    d = np.linalg.norm(centerline - point, axis=1)
+    i = np.argmin(d)
+
+    if i == 0:
+        i0, i1 = 0, 1
+    elif i == len(centerline) - 1:
+        i0, i1 = i - 1, i
+    else:
+        if d[i + 1] < d[i - 1]:
+            i0, i1 = i, i + 1
+        else:
+            i0, i1 = i - 1, i
+
+    p0 = centerline[i0]
+    p1 = centerline[i1]
+
+    #
+    # 2. Tangent and normal
+    #
+    tangent = p1 - p0
+    tangent = tangent / np.linalg.norm(tangent)
+
+    normal = np.array([-tangent[1], tangent[0]])
+
+    #
+    # 3. Build boundary polygon from triangulation
+    #
+    # Extract unique boundary edges
+    edges = {}
+
+    for tri in triangles:
+        for a, b in [(tri[0], tri[1]), (tri[1], tri[2]), (tri[2], tri[0])]:
+            key = tuple(sorted((a, b)))
+            edges[key] = edges.get(key, 0) + 1
+
+    boundary_edges = [e for e, c in edges.items() if c == 1]
+
+    #
+    # 4. Convert boundary to shapely segments
+    #
+    boundary_lines = [
+        LineString([points[i], points[j]])
+        for i, j in boundary_edges
+    ]
+
+    #
+    # 5. Shoot perpendicular line
+    #
+    L = 1e6  # large enough to cross domain
+
+    line = LineString([
+        point - L * normal,
+        point + L * normal
+    ])
+
+    #
+    # 6. Intersect with boundary
+    #
+    intersections = []
+
+    for seg in boundary_lines:
+        inter = line.intersection(seg)
+
+        if inter.is_empty:
+            continue
+
+        if inter.geom_type == "Point":
+            intersections.append(inter)
+
+        elif inter.geom_type == "MultiPoint":
+            intersections.extend(list(inter.geoms))
+
+    #
+    # 7. Extract two points
+    #
+    if len(intersections) < 2:
+        raise RuntimeError("Could not find two boundary intersections")
+
+    pts = np.array([[p.x, p.y] for p in intersections])
+
+    #
+    # 8. Project onto normal axis to get scalar parameters
+    #
+    rel = pts - point
+    t = rel @ normal
+
+    #
+    # 9. Sort consistently
+    #
+    order = np.argsort(t)
+
+    pts = pts[order]
+    t = t[order]
+
+    return normal, t, pts
 
 
 def calculate_clean_centerline(
