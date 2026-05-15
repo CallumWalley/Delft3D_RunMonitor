@@ -15,10 +15,10 @@ class MultiUGridMesh(UGridMesh):
 
         :param filenames: list of map filenames
         """
+        if not filenames:
+            raise FileNotFoundError("No map files found. Check your mappattern argument.")
         self.meshes = [UGridMesh(fn) for fn in filenames]
-        self.time = 0
-        if len(self.meshes) > 0:
-            self.time = self.meshes[0].time
+        self.time = self.meshes[0].time
 
     def readField(self, varname: str, time_index: int):
         """
