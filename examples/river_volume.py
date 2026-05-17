@@ -1,47 +1,73 @@
 import matplotlib.pylab as plt
 import numpy as np
-import triangle
+from glob import glob
 import defopt
-from Delft3D_RunMonitor import calculate_clean_centerline
+from Delft3D_RunMonitor import MultiUGridMesh, VolumeIntegrator
+import matplotlib.pylab as plt
 
-def main(*, num_segs: int=10, nx: int=100):
+def main(*, mappattern: str='FlowFM_*_map.nc', time_index: int=1, 
+            x0b: float=2056400., y0b: float=5785690., x0e: float=2056600., y0e: float=5787000.,
+            x1b: float=2057200., y1b: float=5785690., x1e: float=2057000., y1e: float=5787000.,
+            show_plot: bool=False):
     """
-    Compute the volume river segments
+    Compute the water volume between two segments
 
-    num_segs: number of river segments
-    nx: number of x boundary river points
-    """
+    Args:
+        mappattern: Glob pattern for map files, or a single filename
+        time_index: Time index
+        x0b: First segment start x coordinate
+        y0b: First segment start y coordinate
+        x0e: First segment end x coordinate
+        y0e: First segment end y coordinate
+        x1b: Second segment start x coordinate
+        y1b: Second segment start y coordinate
+        x1e: Second segment end x coordinate
+        y1e: Second segment end y coordinate
+     """
     #
     # Build the river geometry
     #
-    dx = 1.0
-    xy_bottom = [ (i*dx, 20*np.sin(np.pi * i * dx/100.)) for i in range(nx)]
-    xy_top = [ (i*dx, 5 + 30*np.sin(np.pi * i * dx/100.)) for i in range(nx)]
-    xyb = xy_bottom + xy_top[::-1]
-    n1 = len(xyb)
-    markers = [1 for i in range(n1)]
-    tri = triangle.Triangle()
-    tri.set_points(xyb, markers=markers)
-    bound_segs = [(i, i + 1) for i in range(n1 - 1)] + [(n1 - 1, 0)]
-    tri.set_segments(bound_segs)
-    tri.triangulate(area=1.0)
-
-    xy = np.asarray([p[0] for p in tri.get_points()])
-    triangles = np.asarray([t[0] for t in tri.get_triangles()])
+    ugrid = MultiUGridMesh(sorted(glob(mappattern)))
 
     #
-    # Find the center line
+    # Build the intersection polygon (counterclockwise direction)
     #
-    xyc = calculate_clean_centerline(xy, num_clusters=10, num_segments=num_segs, stiffness=50000.0)
-    plt.figure()
-    plt.triplot(xy[:, 0], xy[:, 1], triangles)
-    plt.plot(xyc[:, 0], xyc[:, 1], 'r-')
-    plt.show()
+    poly = np.array(
+        [
+         (x1b, y1b),
+         (x1e, y1e),
+         (x0e, y0e),
+         (x0b, y0b),
+        ]
+    )
 
+    if show_plot:
+         plt.figure()
+         plt.plot(poly[:, 0], poly[:, 1], 'r-')
+         plt.plot([poly[-1, 0], poly[0, 0]], [poly[-1, 1], poly[0, 1]], 'r-')
+         plt.axis('equal')
+         plt.title('Intersection polygon')
+    #
+    # Compute the volume of each subdomain intersection with the polygon
+    #
+    volume_total = 0.0
+    for mesh in ugrid.meshes:
+        points = np.column_stack((mesh.x, mesh.y))
+        vi = VolumeIntegrator(points, mesh.face_nodes, poly)
+        # read the data
+        depth = mesh.readField(varname='mesh2d_waterdepth', time_index=time_index)
+        # compute the volume 
+        volume_total += vi.get_volume(depth)
 
-    #
-    # Compute the volume of each section
-    #
+        if show_plot:
+            plt.triplot(points[:, 0], points[:, 1], mesh.face_nodes)
+
+    print(f'Total volume: {volume_total:.0f} m^3 at time index {time_index}')
+
+    if show_plot:
+        plt.title(f'Total volume: {volume_total:.0f} m^3')
+        plt.show()
+
 
 
 if __name__ == '__main__':

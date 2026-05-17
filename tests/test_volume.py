@@ -172,7 +172,7 @@ def test_paritally_overlapping_big():
     volume1 = compute_clipped_volume(points, triangles, heights, clip_polygon_coords)
     t1 = time.time()
 
-    # this should be faster
+    # this should be a little faster
     t2 = time.time()
     vi = VolumeIntegrator(points, triangles, clip_polygon_coords)
     volume2 = vi.get_volume(heights)

@@ -13,13 +13,13 @@ class VolumeIntegrator:
         self,
         points,
         triangles,
-        clip_polygon_coords,
+        polygon_coords,
     ):
 
         self.points = points
         self.triangles = triangles
 
-        clip_poly = Polygon(clip_polygon_coords)
+        clip_poly = Polygon(polygon_coords)
 
         #
         # Build triangle polygons
