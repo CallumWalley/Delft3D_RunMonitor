@@ -23,6 +23,7 @@ def main(*, mappattern: str='FlowFM_*_map.nc', time_index: int=1,
         y1b: Second segment start y coordinate
         x1e: Second segment end x coordinate
         y1e: Second segment end y coordinate
+        show_plot: Whether to show a plot of the river geometry and intersection polygon
      """
     #
     # Build the river geometry
