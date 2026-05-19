@@ -32,6 +32,9 @@ dependencies = [
     "pytriangle",
 ]
 
+[project.optional-dependencies]
+test = ["pytest"]
+
 [project.urls]
 Homepage = "https://github.com/yourusername/Delft3D_RunMonitor"
 Documentation = "https://github.com/yourusername/Delft3D_RunMonitor/wiki"
