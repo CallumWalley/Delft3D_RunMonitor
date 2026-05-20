@@ -1,19 +1,18 @@
 from Delft3D_RunMonitor import MultiUGridMesh
+from typing import List
 import defopt
-from glob import glob
 
-def main(*, mappattern: str='FlowFM_*_map.nc', varname: str="mesh2d_waterdepth", 
+def main(*, mapnames: List[str]=['FlowFM_0001_map.nc', 'FlowFM_0002_map.nc'], varname: str="mesh2d_waterdepth", 
             cmin: float=None, cmax: float=None,
             t0: int=0, t1: int=-1):
     """
-    mappattern: glob pattern for the map files
+    mapnames: list of map file names
     varname: variable name
     cmin: min float colourmap value
     cmax: max float colourmap value
     t0: min time index
     t1: one beyond last time index
     """
-    mapnames = glob(mappattern)
     mesh = MultiUGridMesh(mapnames)
     clim = None
     if type(cmin) is float and type(cmax) is float:
