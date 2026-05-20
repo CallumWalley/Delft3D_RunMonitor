@@ -168,6 +168,10 @@ def main(*, mappattern: str='FlowFM_*_map.nc', start_time: int=0,
     pl.show()
 
 
-if __name__ == '__main__':
+def cli():
     defopt.run(main)
+
+
+if __name__ == '__main__':
+    cli()
     

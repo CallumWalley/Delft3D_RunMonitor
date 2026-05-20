@@ -20,5 +20,10 @@ def main(*, mappattern: str='FlowFM_*_map.nc', varname: str="mesh2d_waterdepth",
         clim = [float(cmin), float(cmax)]
     mesh.movie(varname, clim=clim, t0=t0, t1=t1)
 
-if __name__ == '__main__':
+
+def cli():
     defopt.run(main)
+
+
+if __name__ == '__main__':
+    cli()

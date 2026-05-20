@@ -44,6 +44,10 @@ Repository = "https://github.com/yourusername/Delft3D_RunMonitor"
 where = ["."]
 include = ["Delft3D_RunMonitor*"]
 
+[project.scripts]
+d3d-plotdod = "Delft3D_RunMonitor.cli.plot_dod:cli"
+d3d-movie = "Delft3D_RunMonitor.cli.movie:cli"
+
 [tool.pytest.ini_options]
 addopts = ""
 testpaths = ["tests"]
