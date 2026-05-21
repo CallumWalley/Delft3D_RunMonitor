@@ -4,6 +4,7 @@ import defopt
 import time
 import numpy as np
 import pyvista as pv
+from typing import List
 
 
 def main(*, mappattern: str='FlowFM_*_map.nc', start_time: int=0,
@@ -13,7 +14,7 @@ def main(*, mappattern: str='FlowFM_*_map.nc', start_time: int=0,
     Plot one or more map files.
 
     Args:
-        mappattern: Glob pattern for map files, or a single filename.
+        mapnames: Glob pattern for map files, or a single filename.
         start_time: First frame to plot.
         end_time: Last frame to plot (exclusive). Defaults to all frames.
         step: Number of time steps to advance per keypress or animation frame.
@@ -24,7 +25,7 @@ def main(*, mappattern: str='FlowFM_*_map.nc', start_time: int=0,
                 Extension sets format: .mp4 for video, .gif for GIF.
     """
 
-    ugrid = MultiUGridMesh(sorted(glob(mappattern)))
+    ugrid = MultiUGridMesh(sorted(mapnames))
 
     end_time = end_time or len(ugrid.time)
 
@@ -175,6 +176,10 @@ def main(*, mappattern: str='FlowFM_*_map.nc', start_time: int=0,
         pl.show()
 
 
-if __name__ == '__main__':
+def cli():
     defopt.run(main)
+
+
+if __name__ == '__main__':
+    cli()
     
