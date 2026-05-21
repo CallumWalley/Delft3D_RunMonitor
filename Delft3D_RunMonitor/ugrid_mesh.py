@@ -41,15 +41,31 @@ class UGridMesh:
         self.x = self.nc.variables[names.node_coordinates.split()[0]][:]
         self.y = self.nc.variables[names.node_coordinates.split()[1]][:]
 
-        # --- Edge connectivity ---
+        # --- Edge-node connectivity ---
         edge_var = self.nc.variables[names.edge_node_connectivity]
         self.edge_nodes = edge_var[:].astype(np.int64)
 
-        # Convert to 0-based indexing if needed
-        start_index = getattr(edge_var, "start_index", 0)
-        if start_index != 0:
-            self.edge_nodes -= start_index
-
+        # --- Edge-face connectivity ---
+        # This is not required for plotting but we read it here for completeness and future use
+        edge_face_var = self.nc.variables.get(names.edge_face_connectivity, None)
+        self.edge_faces = None
+        if edge_face_var is not None:
+            self.edge_faces = edge_face_var[:].astype(np.int64)
+            # Handle fill values (ragged edges)
+            fill_value = getattr(edge_face_var, "_FillValue", None)
+            if fill_value is not None:
+                self.edge_faces = np.where(
+                    self.edge_faces == fill_value, -1, self.edge_faces
+                )
+            # Convert to 0-based indexing
+            start_index = getattr(edge_face_var, "start_index", 0)
+            if start_index != 0:
+                self.edge_faces = np.where(
+                    self.edge_faces >= 0,
+                    self.edge_faces - start_index,
+                    self.edge_faces
+                )
+ 
         # --- Face connectivity ---
         face_var = self.nc.variables[names.face_node_connectivity]
         self.face_nodes = face_var[:].astype(np.int64)
@@ -69,6 +85,16 @@ class UGridMesh:
                 self.face_nodes - start_index,
                 self.face_nodes
             )
+
+        # Build face-edge connectivity if edge-face connectivity is available
+        if self.edge_faces is not None:
+            num_faces = self.face_nodes.shape[0]
+            self.face_edges = -np.ones((num_faces, 3), dtype=np.int64)  # max 3 edges per face
+            for ei, (f1, f2) in enumerate(self.edge_faces):
+                if f1 >= 0:
+                    self.face_edges[f1, np.sum(self.face_edges[f1] >= 0)] = ei
+                if f2 >= 0:
+                    self.face_edges[f2, np.sum(self.face_edges[f2] >= 0)] = ei
 
     def readField(self, varname: str, time_index: int):
         """
