@@ -9,42 +9,40 @@ class UGridMesh:
     A class to read a single partition of data stored on a UGrid mesh
     """
 
-    def __init__(self, filename):
+    def __init__(self, filename, meshname="mesh2d"):
 
         """
         Constructor
 
         :param filename: NetCDF file name storing the mesh and data (map file)
+        :param meshname: name of the mesh in the NetCDF file (default "mesh2d")
         """
 
         # Data containers
         self.time = None
         self.x = None
         self.y = None
-        self.z = None
         self.face_nodes = None
         self.edge_nodes = None
         self.nc = Dataset(filename, "r")
-        self._readMesh()
+        self._readMesh(meshname)
 
-    def _readMesh(self):
+    def _readMesh(self, meshname: str):
         """
         Read the UGrid mesh (points and connectivity)
         """
+
+        names = self.nc.variables[meshname]
+
         # --- Time ---
         self.time = self.nc.variables["time"]
 
         # --- Node coordinates ---
-        self.x = self.nc.variables["mesh2d_node_x"][:]
-        self.y = self.nc.variables["mesh2d_node_y"][:]
-
-        if "mesh2d_node_z" in self.nc.variables:
-            self.z = self.nc.variables["mesh2d_node_z"][:]
-        else:
-            self.z = None
+        self.x = self.nc.variables[names.node_coordinates.split()[0]][:]
+        self.y = self.nc.variables[names.node_coordinates.split()[1]][:]
 
         # --- Edge connectivity ---
-        edge_var = self.nc.variables["mesh2d_edge_nodes"]
+        edge_var = self.nc.variables[names.edge_node_connectivity]
         self.edge_nodes = edge_var[:].astype(np.int64)
 
         # Convert to 0-based indexing if needed
@@ -53,7 +51,7 @@ class UGridMesh:
             self.edge_nodes -= start_index
 
         # --- Face connectivity ---
-        face_var = self.nc.variables["mesh2d_face_nodes"]
+        face_var = self.nc.variables[names.face_node_connectivity]
         self.face_nodes = face_var[:].astype(np.int64)
 
         # Handle fill values (ragged faces)
@@ -86,7 +84,7 @@ class UGridMesh:
         Build the VTK PolyData object
         """
         # Points (N, 3)
-        points = np.column_stack((self.x, self.y, self.z))
+        points = np.column_stack((self.x, self.y, np.zeros_like(self.x)))
 
         # Build faces in VTK format:
         # [npts, p0, p1, ..., npts, ...]

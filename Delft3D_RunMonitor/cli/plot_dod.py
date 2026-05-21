@@ -1,19 +1,19 @@
 from Delft3D_RunMonitor import MultiUGridMesh, load_cross_sections, add_xs_overlay
-from glob import glob
 import defopt
 import time
 import numpy as np
 import pyvista as pv
+from typing import List
 
 
-def main(*, mappattern: str='FlowFM_*_map.nc', start_time: int=0,
+def main(*, mapnames: List[str]=['FlowFM_0001_map.nc', 'FlowFM_0002_map.nc'], start_time: int=0,
          end_time: int=None, cmin: float=None, cmax: float=None,
          xs_file: str=None):
     """
     Plot one or more map files.
 
     Args:
-        mappattern: Glob pattern for map files, or a single filename.
+        mapnames: Glob pattern for map files, or a single filename.
         start_time: First frame to plot.
         end_time: Last frame to plot (exclusive). Defaults to all frames.
         cmin: Minimum colour scale value.
@@ -21,7 +21,7 @@ def main(*, mappattern: str='FlowFM_*_map.nc', start_time: int=0,
         xs_file: Optional path to a cross-section point-pair file
     """
 
-    ugrid = MultiUGridMesh(sorted(glob(mappattern)))
+    ugrid = MultiUGridMesh(sorted(mapnames))
 
     end_time = end_time or len(ugrid.time)
 
@@ -168,6 +168,10 @@ def main(*, mappattern: str='FlowFM_*_map.nc', start_time: int=0,
     pl.show()
 
 
-if __name__ == '__main__':
+def cli():
     defopt.run(main)
+
+
+if __name__ == '__main__':
+    cli()
     

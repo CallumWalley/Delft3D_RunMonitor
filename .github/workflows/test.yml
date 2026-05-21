@@ -18,7 +18,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install system dependencies
-        run: sudo apt-get install -y libgl1-mesa-glx libglu1-mesa xvfb
+        run: sudo apt-get install -y libgl1 libglib2.0-0 libxrender1 libxext6 libsm6 xvfb libglu1-mesa
 
       - name: Install package
         run: pip install -e ".[test]"
