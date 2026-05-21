@@ -23,7 +23,7 @@ dependencies = [
     "numpy==1.26.4",
     "scipy",
     "netCDF4",
-    "pyvista",
+    "pyvista<0.44",
     "imageio[ffmpeg]", "imageio[pyav]",
     "pytest",
     "matplotlib",
