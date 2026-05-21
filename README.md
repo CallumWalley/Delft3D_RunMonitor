@@ -10,8 +10,8 @@ The repository also contains a frozen MATLAB workflow in `mddPlot.m`. That scrip
 
 We recommend to create a Python virtual environment
 ```
-python -m venv venv
-source venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate
 ```
 
 To build the package:
@@ -20,24 +20,50 @@ pip install -e .
 ```
 This will also install dependencies.
 
-Run some examples, for instance
-```
-python examples/multiple_partitions.py -m nesi/project/nesi99999/app_examples/Delft3D/jon/DFM_OUTPUT_FlowFM/FlowFM_00\*_map.nc \
-                                       -t 3
-```
-This will display the water depth at time index 3. Note the backslash `\*`. Type 
-```
-python examples/multiple_partitions.py -h
-```
-to see the list of options.
+Run the interactive viewer from inside your output directory:
 
-To generate a movie
+```bash
+python examples/plot.py
 ```
-DISPLAY= python examples/multiple_partitions_movie.py \
-                -m /nesi/project/nesi99999/app_examples/Delft3D/jon/DFM_OUTPUT_FlowFM/FlowFM_00\*_map.nc \
-                --cmin=0 --cmax=3 --t0=2 --t1=10
+
+This opens a PyVista windowteps through all time frames.
+Glob patterns with `*` should be quoted to prevent shell expansion.
+
+Limit the time range:
+
+```bash
+python examples/plot.py --mappattern 'FlowFM_*_map.nc' \
+                        --start-time 2 --end-time 20 \
 ```
-The setting of `DISPLAY=` to empty prevents an OpenGL error on mahuika.
+
+Add a cross-section overlay:
+
+```bash
+python examples/plot.py --xs-file XSects.txt
+```
+
+On headless nodes (e.g. Mahuika) use `xvfb-run` to suppress the OpenGL display requirement:
+
+```bash
+xfvb-run python examples/plot.py
+```
+
+Run `python examples/plot.py --help` to see all options.
+
+## Testing
+
+Install the test dependencies:
+
+```bash
+pip install -e ".[test]"
+```
+
+
+To run tests.
+
+```bash
+pytest tests/
+```
 
 ## Features
 

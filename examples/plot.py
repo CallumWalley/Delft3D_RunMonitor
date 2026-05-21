@@ -54,7 +54,9 @@ def main(*, mappattern: str='FlowFM_*_map.nc', start_time: int=0,
         'height': 0.9
     }
 
-    xs_mesh = load_cross_sections(xs_file) if xs_file else None
+    xs_data = load_cross_sections(
+        xs_file, z=polymesh.bounds[5] + 1.0
+    ) if xs_file else None
 
     pl = pv.Plotter(shape=(1, 2), off_screen=bool(output))
 
@@ -66,8 +68,8 @@ def main(*, mappattern: str='FlowFM_*_map.nc', start_time: int=0,
         scalar_bar_args=bar
     )
 
-    if xs_mesh:
-        add_xs_overlay(pl, xs_mesh)
+    if xs_data:
+        add_xs_overlay(pl, *xs_data)
 
     pl.subplot(0, 1)
     pl.add_mesh(
@@ -78,10 +80,12 @@ def main(*, mappattern: str='FlowFM_*_map.nc', start_time: int=0,
         scalar_bar_args=bar
     )
 
-    if xs_mesh:
-        add_xs_overlay(pl, xs_mesh)
+    if xs_data:
+        add_xs_overlay(pl, *xs_data)
 
     pl.link_views()
+    pl.view_xy()
+    pl.enable_parallel_projection()
 
     current_time = start_time
     running = False

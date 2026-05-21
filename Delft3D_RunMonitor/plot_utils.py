@@ -8,79 +8,71 @@ VIDEO_FORMATS = {'.mp4', '.avi', '.mov'}
 GIF_FORMATS = {'.gif'}
 
 
-def load_cross_sections(xs_file: str, z: float = 0.0) -> pv.PolyData:
+def load_cross_sections(xs_file: str, z: float = 0.0) -> tuple:
     """Load a cross-section file into a PyVista line mesh.
 
-    two whitespace separated values (easting, northing). 
+    File format: pairs of 'easting northing' rows.
+    A # comment line immediately before a pair is used as the section name.
     Consecutive row pairs define one cross-section line segment.
+
+    Returns (mesh, names) where names is a list of section labels (None if
+    no name was given for that section).
     """
-    coords = np.loadtxt(xs_file).reshape(-1, 2, 2)
-    points, lines = [], []
+    names = []
+    coord_rows = []
+    pending_name = None
+
+    with open(xs_file) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith('#'):
+                pending_name = line.lstrip('#').strip()
+            else:
+                coord_rows.append([float(x) for x in line.split()])
+                if len(coord_rows) % 2 == 0:
+                    names.append(pending_name)
+                    pending_name = None
+
+    coords = np.array(coord_rows).reshape(-1, 2, 2)
+    points, lines, scalars = [], [], []
     offset = 0
-    for pair in coords:
+    for i, pair in enumerate(coords):
         pts = np.column_stack([pair, np.full(2, z)])
         points.extend(pts)
         lines += [2, offset, offset + 1]
+        scalars.extend([i, i])
         offset += 2
+
     mesh = pv.PolyData()
     mesh.points = np.array(points)
     mesh.lines = np.array(lines)
-    return mesh
+    mesh.point_data["xs_index"] = np.array(scalars, dtype=float)
+    return mesh, names
 
 
-def add_xs_overlay(pl: pv.Plotter, xs_mesh: pv.PolyData) -> None:
-    pl.add_mesh(xs_mesh, color='red', line_width=2, render_lines_as_tubes=True)
+def add_xs_overlay(pl: pv.Plotter, xs_mesh: pv.PolyData, names: list) -> None:
+    n = len(names)
+    pl.add_mesh(
+        xs_mesh,
+        scalars="xs_index",
+        cmap="tab10",
+        clim=[-0.5, n - 0.5],
+        line_width=3,
+        render_lines_as_tubes=True,
+        show_scalar_bar=False,
+    )
 
-
-def export_frames(output: str, frames: list, update_frame, polymesh: pv.PolyData,
-                  plotter: pv.Plotter) -> None:
-    """Export rendered frames to file. Format is determined by extension.
-
-    :param output: Output file path. Extension sets format.
-    :param frames: List of time indices to export.
-    :param update_frame: Callable that updates the scene for a given time index.
-    :param polymesh: PyVista mesh (used for 3D mesh export formats).
-    :param plotter: PyVista plotter (used for video and image formats).
-
-    Supported formats:
-        Video: .mp4 .avi .mov  
-        Gif: .gif            
-        Image: .png .jpg .jpeg
-        3D: .stl .vtp .vtk .ply .obj
-    """
-    out = Path(output)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    suffix = out.suffix.lower()
-
-    def numbered(ti):
-        return out.with_stem(f"{out.stem}_{ti:04d}") if len(frames) > 1 else out
-
-    def progress(i):
-        print(f"  frame {i + 1}/{len(frames)}", end="\r", flush=True)
-
-    if suffix in MESH_FORMATS:
-        for i, ti in enumerate(frames):
-            progress(i)
-            update_frame(ti)
-            polymesh.save(str(numbered(ti)))
-    elif suffix in IMAGE_FORMATS:
-        for i, ti in enumerate(frames):
-            progress(i)
-            update_frame(ti)
-            plotter.screenshot(str(numbered(ti)))
-    else:
-        if suffix in GIF_FORMATS:
-            opener = plotter.open_gif
-        elif suffix in VIDEO_FORMATS:
-            opener = plotter.open_movie
-        else:
-            raise ValueError(f"Unknown output format {suffix}")
-
-        opener(output)
-        for i, ti in enumerate(frames):
-            progress(i)
-            update_frame(ti)
-            plotter.write_frame()
-        plotter.close()
-
-    print(f"\nSaved {len(frames)} frame(s) → {output}")
+    endpoints = xs_mesh.points[1::2]
+    labelled = [(pt, name) for pt, name in zip(endpoints, names) if name]
+    if labelled:
+        mids, labels = zip(*labelled)
+        pl.add_point_labels(
+            list(mids),
+            list(labels),
+            font_size=8,
+            always_visible=True,
+            show_points=False,
+            shape=None,
+        )
