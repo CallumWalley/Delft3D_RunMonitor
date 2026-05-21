@@ -20,7 +20,7 @@ classifiers = [
 requires-python = ">=3.8"
 dependencies = [
     "defopt",
-    "numpy",
+    "numpy<2",
     "scipy",
     "netCDF4",
     "pyvista",
