@@ -16,7 +16,7 @@ source .venv/bin/activate
 
 To build the package:
 ```
-pip install -e .
+pip install -r requirements.txt
 ```
 This will also install dependencies.
 
@@ -127,4 +127,12 @@ python examples/plot.py "data/*_map.nc" --output images/frame.png
 
 # Export each frame as a VTK mesh
 python examples/plot.py "data/*_map.nc" --output mesh.stl
+```
+
+## Updating pinned deps
+
+To update pinned dependnecies run `pip-compile`
+
+```sh
+pip-compile pyproject.toml > requirements.txt
 ```
