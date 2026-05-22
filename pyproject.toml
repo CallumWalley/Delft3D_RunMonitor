@@ -20,11 +20,13 @@ classifiers = [
 requires-python = ">=3.8"
 dependencies = [
     "defopt",
-    "numpy",
+    "numpy==1.26.4",
     "scipy",
     "netCDF4",
-    "pyvista",
-    "imageio[ffmpeg]", "imageio[pyav]",
+    "pyvista==0.43.10",
+    "vtk==9.2.6",
+    "imageio[ffmpeg]",
+    "imageio[pyav]",
     "pytest",
     "matplotlib",
     "scikit-learn",
