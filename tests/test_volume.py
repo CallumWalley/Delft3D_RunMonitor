@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import triangle as tr
+from triangle.tri import triangulate as tr_triangulate
 import time
 
 from Delft3D_RunMonitor import compute_clipped_volume, VolumeIntegrator
@@ -33,7 +33,7 @@ def test_simple():
     print(f'xyb = {xyb}')
     print(f'segs = {segs}')
 
-    result = tr.triangulate(
+    result = tr_triangulate(
         {'vertices': np.array(xyb), 'segments': np.array(segs)},
         'pzq10a0.5eQ'
     )
@@ -92,7 +92,7 @@ def test_paritally_overlapping():
     print(f'xyb = {xyb}')
     print(f'segs = {segs}')
 
-    result = tr.triangulate(
+    result = tr_triangulate(
         {'vertices': np.array(xyb), 'segments': np.array(segs)},
         'pzq10a0.5eQ'
     )
@@ -148,7 +148,7 @@ def test_paritally_overlapping_big():
     markers = [1 for _ in range(n)]
     segs = [(i, i + 1) for i in range(n)] + [(n - 1, 0)]
 
-    result = tr.triangulate(
+    result = tr_triangulate(
         {'vertices': np.array(xyb), 'segments': np.array(segs)},
         'pzq10a0.5eQ'
     )
