@@ -31,7 +31,7 @@ dependencies = [
     "matplotlib",
     "scikit-learn",
     "shapely",
-    "pytriangle",
+    "triangle",
 ]
 
 [project.optional-dependencies]
@@ -53,4 +53,8 @@ d3d-movie = "Delft3D_RunMonitor.cli.movie:cli"
 [tool.pytest.ini_options]
 addopts = ""
 testpaths = ["tests"]
+filterwarnings = [
+    "ignore::pyparsing.warnings.PyparsingDeprecationWarning",
+    "ignore:numpy.ndarray size changed:RuntimeWarning",
+]
 
