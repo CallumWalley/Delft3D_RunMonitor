@@ -128,11 +128,3 @@ python examples/plot.py "data/*_map.nc" --output images/frame.png
 # Export each frame as a VTK mesh
 python examples/plot.py "data/*_map.nc" --output mesh.stl
 ```
-
-## Updating pinned deps
-
-To update pinned dependnecies run `pip-compile`
-
-```sh
-pip-compile pyproject.toml > requirements.txt
-```
