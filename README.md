@@ -16,7 +16,7 @@ source .venv/bin/activate
 
 To build the package:
 ```
-pip install -e .
+pip install -r requirements.txt
 ```
 This will also install dependencies.
 
@@ -99,8 +99,32 @@ The script expects the standard Delft3D-FM output structure:
 - **`*_net.nc`**: The master network file describing the global mesh connectivity.
 - **`XSects.txt`** (Optional): A text file containing coordinates for cross-section overlays.
 
-## Outputs
+## Output formats
 
-- **Videos:** `.avi` files showing the temporal evolution of the reach.
-- **STL Mesh:** A scaled/offset 3D mesh of the bed surface for CAD/CGI software.
-- **Data Cubes:** Interpolated matrices (`bed_matrix`, `dep_matrix`) for further statistical analysis.
+Pass `--output <filename>` to `examples/plot.py` to save instead of opening an interactive window. The file extension determines the format:
+
+| Extension | Format | Notes |
+|-----------|--------|-------|
+| `.mp4` `.avi` `.mov` | Video | Recommended for sharing. Requires `ffmpeg`. |
+| `.gif` | Animated GIF | Larger files — use `--step` to reduce frame count. |
+| `.png` `.jpg` | Image | Single file, or numbered (`out_0000.png`, `out_0001.png`, …) if more than one frame. |
+| `.vtp` `.vtk` | VTK mesh | Preserves scalar data (water depth, DoD). Open in [ParaView](https://www.paraview.org/). |
+| `.stl` `.ply` `.obj` | 3D mesh | Geometry only. Suitable for CAD or 3D printing tools such as Blender, Rhino, or MeshLab. |
+
+### Examples
+```bash
+# Interactive viewer (default)
+python examples/plot.py "data/*_map.nc"
+
+# Save MP4 of all frames
+python examples/plot.py "data/*_map.nc" --output animation.mp4
+
+# Save every 3rd frame as a GIF
+python examples/plot.py "data/*_map.nc" --output animation.gif --step 3
+
+# Export all frames as
+python examples/plot.py "data/*_map.nc" --output images/frame.png
+
+# Export each frame as a VTK mesh
+python examples/plot.py "data/*_map.nc" --output mesh.stl
+```

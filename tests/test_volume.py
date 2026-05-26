@@ -1,6 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from triangle import Triangle
+import triangle as tr
 import time
 
 from Delft3D_RunMonitor import compute_clipped_volume, VolumeIntegrator
@@ -27,23 +26,20 @@ def test_simple():
           [(1.0 - i*ds, 1.0) for i in range(ns)] + \
           [(0.0, 1.0 - i*ds) for i in range(ns)]
     n = len(xyb)
-    markers = [1 for _ in range(n)]
     segs = [(i, i + 1) for i in range(n)] + [(n - 1, 0)]
 
     print(f'xyb = {xyb}')
     print(f'segs = {segs}')
 
-    tri = Triangle()
-    tri.set_points(xyb, markers=markers)
-    tri.set_segments(segs)
-    tri.triangulate(area=0.5, mode='pzq10eQ')
-
-    points = np.asarray([xy[0] for xy in tri.get_points()])
-    triangles = np.asarray([t[0] for t in tri.get_triangles()])
+    result = tr.triangulate(
+        {'vertices': np.array(xyb), 'segments': np.array(segs)},
+        'pzq10a0.5eQ'
+    )
+    points = result['vertices']
+    triangles = result['triangles']
 
     print(f'points = {points}')
     print(f'triangles = {triangles}')
-    print(f'tri.get_triangles() = {tri.get_triangles()}')
 
     ncells = triangles.shape[0]
     heights = np.ones((ncells,), float)
@@ -88,23 +84,20 @@ def test_paritally_overlapping():
           [(1.0 - i*ds, 1.0) for i in range(ns)] + \
           [(0.0, 1.0 - i*ds) for i in range(ns)]
     n = len(xyb)
-    markers = [1 for _ in range(n)]
     segs = [(i, i + 1) for i in range(n)] + [(n - 1, 0)]
 
     print(f'xyb = {xyb}')
     print(f'segs = {segs}')
 
-    tri = Triangle()
-    tri.set_points(xyb, markers=markers)
-    tri.set_segments(segs)
-    tri.triangulate(area=0.5, mode='pzq10eQ')
-
-    points = np.asarray([xy[0] for xy in tri.get_points()])
-    triangles = np.asarray([t[0] for t in tri.get_triangles()])
+    result = tr.triangulate(
+        {'vertices': np.array(xyb), 'segments': np.array(segs)},
+        'pzq10a0.5eQ'
+    )
+    points = result['vertices']
+    triangles = result['triangles']
 
     print(f'points = {points}')
     print(f'triangles = {triangles}')
-    print(f'tri.get_triangles() = {tri.get_triangles()}')
 
     ncells = triangles.shape[0]
     heights = np.ones((ncells,), float)
@@ -149,16 +142,14 @@ def test_paritally_overlapping_big():
           [(1.0 - i*ds, 1.0) for i in range(ns)] + \
           [(0.0, 1.0 - i*ds) for i in range(ns)]
     n = len(xyb)
-    markers = [1 for _ in range(n)]
     segs = [(i, i + 1) for i in range(n)] + [(n - 1, 0)]
 
-    tri = Triangle()
-    tri.set_points(xyb, markers=markers)
-    tri.set_segments(segs)
-    tri.triangulate(area=0.5, mode='pzq10eQ')
-
-    points = np.asarray([xy[0] for xy in tri.get_points()])
-    triangles = np.asarray([t[0] for t in tri.get_triangles()])
+    result = tr.triangulate(
+        {'vertices': np.array(xyb), 'segments': np.array(segs)},
+        'pzq10a0.5eQ'
+    )
+    points = result['vertices']
+    triangles = result['triangles']
 
     ncells = triangles.shape[0]
     print(f'number of cells: {ncells}')
