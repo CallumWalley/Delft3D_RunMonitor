@@ -256,7 +256,7 @@ class FluxIntegrator:
         flux = 0.0
 
         for edge_id, weight in self.weights.items():
-            value = edge_values.get(edge_id, 0.0)
+            value = edge_values[edge_id]
             flux += weight * value
 
         return flux

@@ -48,21 +48,21 @@ def test_simple():
 
     fi = FluxIntegrator(points, triangles, edges, p0=(0.5, 0.0), p1=(0.5, 1.0))
 
-    # ncells = triangles.shape[0]
-    # heights = np.ones((ncells,), float)
+    # set flux values on edge based on a potential field phi = y
+    edge_values = np.zeros((edges.shape[0],), float)
+    for iaib in edges:
+        ia, ib = iaib
+        y_a = points[ia][1]
+        y_b = points[ib][1]
+        edge_id = fi.nodes_edge[tuple(iaib)]
+        edge_values[edge_id] = y_b - y_a
 
-    # exact_volume = (x1 - x0) * (y1 - y0)
+    # compute the flux across the line segment
+    flux = fi.get_flux(edge_values)
+    print(f'flux = {flux}')
 
-    # # try the slow method
-    # volume = compute_clipped_volume(points, triangles, heights, clip_polygon_coords)
-    # print(f'volume = {volume}')
 
-    # assert abs(volume - exact_volume) < 1.e-10
-
-    # # this should be faster
-    # vi = VolumeIntegrator(points, triangles, clip_polygon_coords)
-    # volume = vi.get_volume(heights)
-    # assert abs(volume - exact_volume) < 1.e-10
+    assert abs(flux - 1.0) < 1.e-10
 
 
 # def test_paritally_overlapping():
