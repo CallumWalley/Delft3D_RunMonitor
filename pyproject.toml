@@ -24,11 +24,14 @@ dependencies = [
     "scipy",
     "netCDF4",
     "pyvista",
-    "imageio[ffmpeg]", "imageio[pyav]",
+    "vtk",
+    "imageio[ffmpeg]",
+    "imageio[pyav]",
     "pytest",
     "matplotlib",
     "scikit-learn",
     "shapely",
+    #"triangle==20250106",
     "pytriangle",
 ]
 
@@ -51,4 +54,8 @@ d3d-movie = "Delft3D_RunMonitor.cli.movie:cli"
 [tool.pytest.ini_options]
 addopts = ""
 testpaths = ["tests"]
+filterwarnings = [
+    "ignore::pyparsing.warnings.PyparsingDeprecationWarning",
+    "ignore:numpy.ndarray size changed:RuntimeWarning",
+]
 

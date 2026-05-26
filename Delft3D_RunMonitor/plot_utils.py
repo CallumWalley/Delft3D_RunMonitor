@@ -1,5 +1,11 @@
 import numpy as np
 import pyvista as pv
+from pathlib import Path
+
+MESH_FORMATS  = {'.stl', '.vtp', '.vtk', '.ply', '.obj'}
+IMAGE_FORMATS = {'.png', '.jpg', '.jpeg'}
+VIDEO_FORMATS = {'.mp4', '.avi', '.mov'}
+GIF_FORMATS = {'.gif'}
 
 
 def load_cross_sections(xs_file: str, z: float = 0.0) -> tuple:

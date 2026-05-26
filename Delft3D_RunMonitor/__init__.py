@@ -4,7 +4,7 @@ from .volume_integrator import VolumeIntegrator
 from .flux_integrator import FluxIntegrator
 from .plot_utils import load_cross_sections, add_xs_overlay
 from .utils import calculate_clean_centerline, triangle_area, compute_clipped_volume
+from .export_utils import export_frames
 
-__all__ = ["MultiUGridMesh", "UGridMesh", "VolumeIntegrator", "FluxIntegrator",
-           "load_cross_sections", "add_xs_overlay",
-           "calculate_clean_centerline", "triangle_area", "compute_clipped_volume"]
+__all__ = ["MultiUGridMesh", "UGridMesh", "VolumeIntegrator", "FluxIntegrator", "load_cross_sections", "add_xs_overlay",
+           "calculate_clean_centerline", "triangle_area", "compute_clipped_volume", "export_frames"]

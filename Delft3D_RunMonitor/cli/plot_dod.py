@@ -1,4 +1,5 @@
-from Delft3D_RunMonitor import MultiUGridMesh, load_cross_sections, add_xs_overlay
+from Delft3D_RunMonitor import MultiUGridMesh, load_cross_sections, add_xs_overlay, export_frames
+from glob import glob
 import defopt
 import time
 import numpy as np
@@ -6,9 +7,9 @@ import pyvista as pv
 from typing import List
 
 
-def main(*, mapnames: List[str]=['FlowFM_0001_map.nc', 'FlowFM_0002_map.nc'], start_time: int=0,
-         end_time: int=None, cmin: float=None, cmax: float=None,
-         xs_file: str=None):
+def main(*, mappattern: str='FlowFM_*_map.nc', start_time: int=0,
+         end_time: int=None, step: int=1, cmin: float=None, cmax: float=None,
+         xs_file: str=None, output: str=None):
     """
     Plot one or more map files.
 
@@ -16,9 +17,12 @@ def main(*, mapnames: List[str]=['FlowFM_0001_map.nc', 'FlowFM_0002_map.nc'], st
         mapnames: Glob pattern for map files, or a single filename.
         start_time: First frame to plot.
         end_time: Last frame to plot (exclusive). Defaults to all frames.
+        step: Number of time steps to advance per keypress or animation frame.
         cmin: Minimum colour scale value.
         cmax: Maximum colour scale value.
-        xs_file: Optional path to a cross-section point-pair file
+        xs_file: Optional path to a cross-section point-pair file.
+        output: Save to file instead of opening interactive window.
+                Extension sets format: .mp4 for video, .gif for GIF.
     """
 
     ugrid = MultiUGridMesh(sorted(mapnames))
@@ -55,7 +59,7 @@ def main(*, mapnames: List[str]=['FlowFM_0001_map.nc', 'FlowFM_0002_map.nc'], st
         xs_file, z=polymesh.bounds[5] + 1.0
     ) if xs_file else None
 
-    pl = pv.Plotter(shape=(1, 2))
+    pl = pv.Plotter(shape=(1, 2), off_screen=bool(output))
 
     pl.subplot(0, 0)
     pl.add_mesh(
@@ -120,7 +124,7 @@ def main(*, mapnames: List[str]=['FlowFM_0001_map.nc', 'FlowFM_0002_map.nc'], st
         pl.render()
 
     def step_forward():
-        update_frame(current_time + 1)
+        update_frame(current_time + step)
 
     def goto_start():
         update_frame(start_time)
@@ -143,29 +147,33 @@ def main(*, mapnames: List[str]=['FlowFM_0001_map.nc', 'FlowFM_0002_map.nc'], st
 
         while running and current_time < end_time - 1:
 
-            update_frame(current_time + 1)
+            update_frame(current_time + step)
 
             pl.update()
             time.sleep(0.1)
 
         running = False
 
-    pl.add_key_event("t", step_forward)
-    pl.add_key_event("r", run_animation)
-    pl.add_key_event("space", stop_running)
-    pl.add_key_event("s", goto_start)
-    pl.add_key_event("e", goto_end)
+    if output:
+        export_frames(output, list(range(start_time, end_time, step)),
+                      update_frame, polymesh, pl)
+    else:
+        pl.add_key_event("t", step_forward)
+        pl.add_key_event("r", run_animation)
+        pl.add_key_event("space", stop_running)
+        pl.add_key_event("s", goto_start)
+        pl.add_key_event("e", goto_end)
 
-    update_frame(start_time)
+        update_frame(start_time)
 
-    print("Keyboard controls:")
-    print("  t      step forward")
-    print("  r      run animation")
-    print("  space  stop animation")
-    print("  s      first frame")
-    print("  e      last frame")
+        print("Keyboard controls:")
+        print("  t      step forward")
+        print("  r      run animation")
+        print("  space  stop animation")
+        print("  s      first frame")
+        print("  e      last frame")
 
-    pl.show()
+        pl.show()
 
 
 def cli():
