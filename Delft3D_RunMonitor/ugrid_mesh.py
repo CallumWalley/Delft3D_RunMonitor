@@ -87,6 +87,7 @@ class UGridMesh:
             )
 
         # Build face-edge connectivity if edge-face connectivity is available
+        # DO WE NEED THIS? NOT FOR PLOTTING BUT MAYBE FOR FUTURE USE
         if self.edge_faces is not None:
             num_faces = self.face_nodes.shape[0]
             self.face_edges = -np.ones((num_faces, 3), dtype=np.int64)  # max 3 edges per face

@@ -27,16 +27,18 @@ class FluxIntegrator:
         coordinates of the segment endpoints inside the triangle.
     """
 
-    def __init__(self, points, triangles, p0, p1, tol=1e-12):
+    def __init__(self, points, triangles, edges, p0, p1, tol=1e-12):
 
         self.points = np.asarray(points, dtype=float)
         self.triangles = np.asarray(triangles, dtype=int)
+        self.edges = np.asarray(edges, dtype=int)
 
         self.p0 = np.asarray(p0, dtype=float)
         self.p1 = np.asarray(p1, dtype=float)
 
         self.tol = tol
 
+        self._build_nodes_edge()
         self.segments = self._build_segments()
 
     @staticmethod
@@ -104,6 +106,10 @@ class FluxIntegrator:
 
     def _inside_triangle(self, bary):
         return np.all(bary >= -self.tol)
+    
+    def _build_nodes_edge(self):
+
+        self.nodes_edge = {tuple(iaib) : ie for ie, iaib in enumerate(self.edges)}
 
     def _build_segments(self):
 
@@ -197,4 +203,38 @@ class FluxIntegrator:
                 )
             )
 
-        return segments
+        self.weights = {}
+
+        for face_id, xi_a, eta_a, xi_b, eta_b in segments:
+
+            xibar = 0.5*(xi_a + xi_b)
+            etabar = 0.5*(eta_a + eta_b)
+            dxi = xi_b - xi_a
+            deta = eta_b - eta_a
+
+            tri = self.triangles[face_id]
+
+            # weights for the three edges of the triangle, in the order (0,1), (1,2), (2,0)
+            ws = ( \
+                (1.0 - xibar - etabar)*dxi + xibar*(dxi + deta), \
+                xibar*deta - etabar*dxi, \
+                -etabar*(dxi + deta) - (1.0 - xibar - etabar)*deta, \
+            )
+
+            for i in range(3):
+
+                weight = ws[i]
+                ia, ib = tri[i], tri[(i + 1) % 3]
+
+                if (ia, ib) in self.nodes_edge:
+                    edge_id = self.nodes_edge[(ia, ib)]
+                    sign = 1
+                elif (ib, ia) in self.nodes_edge:
+                    edge_id = self.nodes_edge[(ib, ia)]
+                    sign = -1
+                else:
+                    raise RuntimeError(f"Cannot find edge {ia} -> {ib}")
+
+            
+                self.weights[edge_id] = weight * sign
+
