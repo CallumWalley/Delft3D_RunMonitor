@@ -234,7 +234,30 @@ class FluxIntegrator:
                     sign = -1
                 else:
                     raise RuntimeError(f"Cannot find edge {ia} -> {ib}")
-
             
                 self.weights[edge_id] = weight * sign
+
+
+    def get_flux(self, edge_values):
+        """
+        Compute the flux across the line segment by summing the contributions from the intersected edges.
+
+        Parameters
+        ----------
+        edge_values : dict
+            A dictionary mapping edge_id to the value of the field on that edge.
+
+        Returns
+        -------
+        flux : float
+            The computed flux across the line segment.
+        """
+
+        flux = 0.0
+
+        for edge_id, weight in self.weights.items():
+            value = edge_values.get(edge_id, 0.0)
+            flux += weight * value
+
+        return flux
 

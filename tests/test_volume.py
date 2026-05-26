@@ -62,7 +62,7 @@ def test_simple():
     assert abs(volume - exact_volume) < 1.e-10
 
 
-def test_paritally_overlapping():
+def test_partially_overlapping():
 
     # ---------------------------------------------------------
     # 1. triangulated domain a square
@@ -123,7 +123,7 @@ def test_paritally_overlapping():
     assert abs(volume - exact_volume) < 1.e-10
 
 
-def test_paritally_overlapping_big():
+def test_partially_overlapping_big():
 
     # ---------------------------------------------------------
     # 1. triangulated domain a square
