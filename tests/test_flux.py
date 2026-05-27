@@ -265,7 +265,7 @@ def test_river_big():
     tri = Triangle()
     tri.set_points(xyb, markers=markers)
     tri.set_segments(segs)
-    tri.triangulate(area=0.0001, mode='pzq10eQ')
+    tri.triangulate(area=0.001, mode='pzq10eQ')
 
     points = np.asarray([xy[0] for xy in tri.get_points()])
     triangles = np.asarray([t[0] for t in tri.get_triangles()])

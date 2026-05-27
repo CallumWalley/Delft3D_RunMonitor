@@ -66,6 +66,7 @@ class FluxIntegrator:
         qmp = q - p
 
         if abs(rxs) < self.tol:
+            # WHAT SHOULD WE DO IF r s overlap? For now, we just ignore this case.
             return None  # Parallel
 
         t = self._cross2(qmp, s) / rxs
@@ -105,6 +106,7 @@ class FluxIntegrator:
         return np.array([u, v, w])
 
     def _inside_triangle(self, bary):
+        # bary are the full barycentric coordinates (l0, l1, l2), l0 + l1 + l2 = 1
         return np.all(bary >= -self.tol)
     
     def _build_nodes_edge(self):
