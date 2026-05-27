@@ -308,3 +308,70 @@ def test_loop():
     assert abs(flux - exact_flux) < 1.e-10
 
 
+def test_aligned():
+
+    # ---------------------------------------------------------
+    # 1. triangulated domain a square
+    # ---------------------------------------------------------
+    ns1 = 5
+    ns = ns1 - 1
+    ds = 1.0 / (ns1 - 1)
+    x0, y0 = 0.3, 0.3
+    x1, y1 = 0.7, 0.9
+    clip_polygon_coords = np.array(
+        [(x0, y0),
+         (x1, y0),
+         (x1, y1),
+         (x0, y1)]
+
+    )
+    xyb = [(i*ds, 0.0) for i in range(ns)] + \
+          [(1.0, i*ds) for i in range(ns)] + \
+          [(1.0 - i*ds, 1.0) for i in range(ns)] + \
+          [(0.0, 1.0 - i*ds) for i in range(ns)]
+    n = len(xyb)
+    markers = [1 for _ in range(n)]
+    segs = [(i, i + 1) for i in range(n)] + [(n - 1, 0)]
+
+    print(f'xyb = {xyb}')
+    print(f'segs = {segs}')
+
+    tri = Triangle()
+    tri.set_points(xyb, markers=markers)
+    tri.set_segments(segs)
+    tri.triangulate(area=0.5, mode='pzq10eQ')
+
+    # extract points, get_points returns a list of tuples (point, marker)
+    points = np.asarray([xy[0] for xy in tri.get_points()])
+    # extract triangles, get_triangles returns a list of tuples (triangle, marker)
+    triangles = np.asarray([t[0] for t in tri.get_triangles()])
+    # extract edges, get_edges returns a list of tuples (edge, marker)
+    edges = np.asarray([e[0] for e in tri.get_edges()])
+
+    print(f'points = {points}')
+    print(f'triangles = {triangles}')
+    print(f'edges = {edges}')
+
+    p0 = (0.0, 0.0)
+    p1 = (0.0, 1.0)
+    fi = FluxIntegrator(points, triangles, edges, p0=p0, p1=p1)
+
+    # set flux values on edge based on a potential field phi = y
+    def phi(x, y):
+        return y
+
+    edge_values = np.zeros((edges.shape[0],), float)
+    for iaib in edges:
+        ia, ib = iaib
+        x_a, y_a = points[ia]
+        x_b, y_b = points[ib]
+        edge_id = fi.nodes_edge[tuple(iaib)]
+        # edge values are the difference in potential across the edge, phi_b - phi_a
+        edge_values[edge_id] = phi(x_b, y_b) - phi(x_a, y_a)
+
+    # compute the flux across the line segment
+    flux = fi.get_flux(edge_values)
+    print(f'flux = {flux}')
+
+    exact_flux = phi(p1[0], p1[1]) - phi(p0[0], p0[1])
+    assert abs(flux - exact_flux) < 1.e-10
