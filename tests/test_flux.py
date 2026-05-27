@@ -278,14 +278,14 @@ def test_loop():
     fi1 = FluxIntegrator(points, triangles, edges, p0=p1, p1=p2)
     fi2 = FluxIntegrator(points, triangles, edges, p0=p2, p1=p0)
 
-    print(f'points = {points}')
-    print(f'triangles = {triangles}')
-    plt.figure()
-    plt.triplot(points[:, 0], points[:, 1], triangles)
-    plt.plot([p0[0], p1[0]], [p0[1], p1[1]], 'r-', linewidth=2)
-    plt.plot([p1[0], p2[0]], [p1[1], p2[1]], 'r-', linewidth=2)
-    plt.plot([p2[0], p0[0]], [p2[1], p0[1]], 'r-', linewidth=2)
-    plt.show()
+    # print(f'points = {points}')
+    # print(f'triangles = {triangles}')
+    # plt.figure()
+    # plt.triplot(points[:, 0], points[:, 1], triangles)
+    # plt.plot([p0[0], p1[0]], [p0[1], p1[1]], 'r-', linewidth=2)
+    # plt.plot([p1[0], p2[0]], [p1[1], p2[1]], 'r-', linewidth=2)
+    # plt.plot([p2[0], p0[0]], [p2[1], p0[1]], 'r-', linewidth=2)
+    # plt.show()
 
     # set flux values on edge based on a potential field phi = y
     def phi(x, y):
