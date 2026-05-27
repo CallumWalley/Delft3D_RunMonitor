@@ -211,14 +211,15 @@ class FluxIntegrator:
             etabar = 0.5*(eta_a + eta_b)
             dxi = xi_b - xi_a
             deta = eta_b - eta_a
+            one_minus_sum = 1.0 - xibar - etabar
 
             tri = self.triangles[face_id]
 
             # weights for the three edges of the triangle, in the order (0,1), (1,2), (2,0)
             ws = ( \
-                (1.0 - xibar - etabar)*dxi + xibar*(dxi + deta), \
+                one_minus_sum*dxi + xibar*(dxi + deta), \
                 xibar*deta - etabar*dxi, \
-                -etabar*(dxi + deta) - (1.0 - xibar - etabar)*deta, \
+                -etabar*(dxi + deta) - one_minus_sum*deta, \
             )
 
             for i in range(3):
@@ -235,7 +236,7 @@ class FluxIntegrator:
                 else:
                     raise RuntimeError(f"Cannot find edge {ia} -> {ib}")
             
-                self.weights[edge_id] = weight * sign
+                self.weights[edge_id] = self.weights.get(edge_id, 0) + weight * sign
 
 
     def get_flux(self, edge_values):

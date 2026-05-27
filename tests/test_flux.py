@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from triangle import Triangle
-import time
 
 from Delft3D_RunMonitor import FluxIntegrator
  
@@ -38,159 +37,152 @@ def test_simple():
     tri.set_segments(segs)
     tri.triangulate(area=0.5, mode='pzq10eQ')
 
+    # extract points, get_points returns a list of tuples (point, marker)
     points = np.asarray([xy[0] for xy in tri.get_points()])
+    # extract triangles, get_triangles returns a list of tuples (triangle, marker)
     triangles = np.asarray([t[0] for t in tri.get_triangles()])
+    # extract edges, get_edges returns a list of tuples (edge, marker)
     edges = np.asarray([e[0] for e in tri.get_edges()])
 
     print(f'points = {points}')
     print(f'triangles = {triangles}')
     print(f'edges = {edges}')
 
-    fi = FluxIntegrator(points, triangles, edges, p0=(0.5, 0.0), p1=(0.5, 1.0))
+    p0 = (0.5, 0.0)
+    p1 = (0.5, 1.0)
+    fi = FluxIntegrator(points, triangles, edges, p0=p0, p1=p1)
 
     # set flux values on edge based on a potential field phi = y
+    def phi(x, y):
+        return y
+
     edge_values = np.zeros((edges.shape[0],), float)
     for iaib in edges:
         ia, ib = iaib
-        y_a = points[ia][1]
-        y_b = points[ib][1]
+        x_a, y_a = points[ia]
+        x_b, y_b = points[ib]
         edge_id = fi.nodes_edge[tuple(iaib)]
-        edge_values[edge_id] = y_b - y_a
+        # edge values are the difference in potential across the edge, phi_b - phi_a
+        edge_values[edge_id] = phi(x_b, y_b) - phi(x_a, y_a)
 
     # compute the flux across the line segment
     flux = fi.get_flux(edge_values)
     print(f'flux = {flux}')
 
-
-    assert abs(flux - 1.0) < 1.e-10
-
-
-# def test_paritally_overlapping():
-
-#     # ---------------------------------------------------------
-#     # 1. triangulated domain a square
-#     # ---------------------------------------------------------
-#     ns1 = 5
-#     ns = ns1 - 1
-#     ds = 1.0 / (ns1 - 1)
-#     x0, y0 = -0.5, -1
-#     x1, y1 = 1.5, -1
-#     x2, y2 = 0.5, 1
-#     clip_polygon_coords = np.array(
-#         [
-#          (x0, y0),
-#          (x1, y1),
-#          (x2, y2),
-#         ]
-
-#     )
-
-#     # [0,1] x [0,1] square
-#     xyb = [(i*ds, 0.0) for i in range(ns)] + \
-#           [(1.0, i*ds) for i in range(ns)] + \
-#           [(1.0 - i*ds, 1.0) for i in range(ns)] + \
-#           [(0.0, 1.0 - i*ds) for i in range(ns)]
-#     n = len(xyb)
-#     markers = [1 for _ in range(n)]
-#     segs = [(i, i + 1) for i in range(n)] + [(n - 1, 0)]
-
-#     print(f'xyb = {xyb}')
-#     print(f'segs = {segs}')
-
-#     tri = Triangle()
-#     tri.set_points(xyb, markers=markers)
-#     tri.set_segments(segs)
-#     tri.triangulate(area=0.5, mode='pzq10eQ')
-
-#     points = np.asarray([xy[0] for xy in tri.get_points()])
-#     triangles = np.asarray([t[0] for t in tri.get_triangles()])
-
-#     print(f'points = {points}')
-#     print(f'triangles = {triangles}')
-#     print(f'tri.get_triangles() = {tri.get_triangles()}')
-
-#     ncells = triangles.shape[0]
-#     heights = np.ones((ncells,), float)
-
-#     exact_volume = 0.5
-
-#     # try the slow method
-#     volume = compute_clipped_volume(points, triangles, heights, clip_polygon_coords)
-#     print(f'volume = {volume}')
-
-#     assert abs(volume - exact_volume) < 1.e-10
-
-#     # this should be faster
-#     vi = VolumeIntegrator(points, triangles, clip_polygon_coords)
-#     volume = vi.get_volume(heights)
-#     assert abs(volume - exact_volume) < 1.e-10
+    exact_flux = phi(p1[0], p1[1]) - phi(p0[0], p0[1])
+    assert abs(flux - exact_flux) < 1.e-10
 
 
-# def test_paritally_overlapping_big():
+def test_irregular():
 
-#     # ---------------------------------------------------------
-#     # 1. triangulated domain a square
-#     # ---------------------------------------------------------
-#     ns1 = 10001
-#     ns = ns1 - 1
-#     ds = 1.0 / (ns1 - 1)
-#     x0, y0 = -0.5, -1
-#     x1, y1 = 1.5, -1
-#     x2, y2 = 0.5, 1
-#     clip_polygon_coords = np.array(
-#         [
-#          (x0, y0),
-#          (x1, y1),
-#          (x2, y2),
-#         ]
+    # boundary points
+    xyb = [(0.0, 0.0), (1.0, 0.0), (2.0, 0.0), (2.0, 0.5), (1.0, 0.6), (0.0, 0.5),]
+    n = len(xyb)
+    # markers for boundary points, not used in this test but required by Triangle
+    markers = [1 for _ in range(n)]
+    # segments connecting the boundary points, must close the loop
+    segs = [(i, i + 1) for i in range(n - 1)] + [(n - 1, 0)]
 
-#     )
+    # triangluate the domain, mode 'pzq10eQ' means:
+    # p: triangulate a Planar Straight Line Graph
+    # z: number all items starting from zero
+    # q10: quality mesh with minimum angle of 10 degrees
+    # e: output edge list
+    # Q: quiet mode, no terminal output
+    tri = Triangle()
+    tri.set_points(xyb, markers=markers)
+    tri.set_segments(segs)
+    tri.triangulate(area=0.5, mode='pzq10eQ')
 
-#     # [0,1] x [0,1] square
-#     xyb = [(i*ds, 0.0) for i in range(ns)] + \
-#           [(1.0, i*ds) for i in range(ns)] + \
-#           [(1.0 - i*ds, 1.0) for i in range(ns)] + \
-#           [(0.0, 1.0 - i*ds) for i in range(ns)]
-#     n = len(xyb)
-#     markers = [1 for _ in range(n)]
-#     segs = [(i, i + 1) for i in range(n)] + [(n - 1, 0)]
+    points = np.asarray([xy[0] for xy in tri.get_points()])
+    triangles = np.asarray([t[0] for t in tri.get_triangles()])
+    edges = np.asarray([e[0] for e in tri.get_edges()]) 
 
-#     tri = Triangle()
-#     tri.set_points(xyb, markers=markers)
-#     tri.set_segments(segs)
-#     tri.triangulate(area=0.5, mode='pzq10eQ')
+    # create a flux integrator for the line segment
+    p0 = (0.0, 0.0)
+    p1 = (1.0, 0.6)
+    fi = FluxIntegrator(points, triangles, edges, p0=p0, p1=p1)
 
-#     points = np.asarray([xy[0] for xy in tri.get_points()])
-#     triangles = np.asarray([t[0] for t in tri.get_triangles()])
+    # print(f'points = {points}')
+    # print(f'triangles = {triangles}')
+    # plt.figure()
+    # plt.triplot(points[:, 0], points[:, 1], triangles)
+    # plt.plot([p0[0], p1[0]], [p0[1], p1[1]], 'r-', linewidth=2)
+    # plt.show()
 
-#     ncells = triangles.shape[0]
-#     print(f'number of cells: {ncells}')
+    # set flux values on edge based on a potential field phi = y
+    def phi(x, y):
+        return y
+    
+    edge_values = np.zeros((edges.shape[0],), float)
+    for iaib in edges:
+        ia, ib = iaib
+        x_a, y_a = points[ia]
+        x_b, y_b = points[ib]
+        edge_id = fi.nodes_edge[tuple(iaib)]
+        edge_values[edge_id] = phi(x_b, y_b) - phi(x_a, y_a)
 
-#     heights = np.ones((ncells,), float)
+    # compute the flux across the line segment
+    flux = fi.get_flux(edge_values)
+    print(f'flux = {flux}')
 
-#     exact_volume = 0.5
-
-#     # try the slow method
-#     t0 = time.time()
-#     volume1 = compute_clipped_volume(points, triangles, heights, clip_polygon_coords)
-#     t1 = time.time()
-
-#     # this should be a little faster
-#     t2 = time.time()
-#     vi = VolumeIntegrator(points, triangles, clip_polygon_coords)
-#     volume2 = vi.get_volume(heights)
-#     t3 = time.time()
-
-#     print(f'Times: {t1 - t0} STR tree {t3 - t2} secs' )
-
-
-#     assert abs(volume1 - exact_volume) < 1.e-10
-#     assert abs(volume2 - exact_volume) < 1.e-10
+    exact_flux = phi(p1[0], p1[1]) - phi(p0[0], p0[1])
+    assert abs(flux - exact_flux) < 1.e-10
 
 
+def test_irregular2():
 
+    # boundary points
+    xyb = [(0.0, 0.0), (1.0, 0.0), (2.0, 0.0), (2.0, 0.5), (1.0, 0.6), (0.0, 0.5),]
+    n = len(xyb)
+    # markers for boundary points, not used in this test but required by Triangle
+    markers = [1 for _ in range(n)]
+    # segments connecting the boundary points, must close the loop
+    segs = [(i, i + 1) for i in range(n - 1)] + [(n - 1, 0)]
 
+    # triangluate the domain, mode 'pzq10eQ' means:
+    # p: triangulate a Planar Straight Line Graph
+    # z: number all items starting from zero
+    # q10: quality mesh with minimum angle of 10 degrees
+    # e: output edge list
+    # Q: quiet mode, no terminal output
+    tri = Triangle()
+    tri.set_points(xyb, markers=markers)
+    tri.set_segments(segs)
+    tri.triangulate(area=0.5, mode='pzq10eQ')
 
+    points = np.asarray([xy[0] for xy in tri.get_points()])
+    triangles = np.asarray([t[0] for t in tri.get_triangles()])
+    edges = np.asarray([e[0] for e in tri.get_edges()]) 
 
+    # create a flux integrator for the line segment
+    p0 = (0.0, 0.0)
+    p1 = (2.0, 0.5)
+    fi = FluxIntegrator(points, triangles, edges, p0=p0, p1=p1)
 
+    print(f'points = {points}')
+    print(f'triangles = {triangles}')
+    plt.figure()
+    plt.triplot(points[:, 0], points[:, 1], triangles)
+    plt.plot([p0[0], p1[0]], [p0[1], p1[1]], 'r-', linewidth=2)
+    plt.show()
 
+    # set flux values on edge based on a potential field phi = y
+    def phi(x, y):
+        return y
+    
+    edge_values = np.zeros((edges.shape[0],), float)
+    for iaib in edges:
+        ia, ib = iaib
+        x_a, y_a = points[ia]
+        x_b, y_b = points[ib]
+        edge_id = fi.nodes_edge[tuple(iaib)]
+        edge_values[edge_id] = phi(x_b, y_b) - phi(x_a, y_a)
+
+    # compute the flux across the line segment
+    flux = fi.get_flux(edge_values)
+    print(f'flux = {flux}')
+
+    exact_flux = phi(p1[0], p1[1]) - phi(p0[0], p0[1])
+    print(f'exact_flux = {exact_flux}')
+    assert abs(flux - exact_flux) < 1.e-10
