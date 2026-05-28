@@ -17,7 +17,7 @@ from Delft3D_RunMonitor import MultiUGridMesh, PlotView, Viewer, CrossSectionOve
 
 def _dod(mesh, ti):
     """Bed level change relative to t=0 (depth of difference)."""
-    bed_t0 = mesh.readField("mesh2d_s1", 0)  - mesh.readField("mesh2d_dg", 0)
+    bed_t0 = mesh.readField("mesh2d_s1", 0) - mesh.readField("mesh2d_dg", 0)
     bed_ti = mesh.readField("mesh2d_s1", ti) - mesh.readField("mesh2d_dg", ti)
     return bed_ti - bed_t0
 
