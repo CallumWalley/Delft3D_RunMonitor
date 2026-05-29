@@ -51,8 +51,6 @@ class UGridMesh:
         Read the UGrid mesh (points and connectivity)
         """
 
-        print(f"Reading mesh {meshname} from {self.nc.filepath()}")
-        print(f"  Available variables: {list(self.nc.variables.keys())}")
         names = self.nc.variables[meshname]
 
         # --- Time ---

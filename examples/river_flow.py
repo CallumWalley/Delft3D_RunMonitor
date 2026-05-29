@@ -51,6 +51,10 @@ def main(*, mapnames: List[str]=['FlowFM_0000_map.nc'], time_index: int=1,
         # length of the edge (do we need z here?)
         edge_length = np.linalg.norm(points[mesh.edge_nodes[:, 1]] - points[mesh.edge_nodes[:, 0]], axis=1)
         # the flux integrator wants integred fluxes at the edges
+        # NEED TO CHECK SIGN OF THE EDGE FLOW!!!! Here we assume the diretion tof the flow to be given by edge direction cross z.
+        # This means that the edge to faces connectivity must have the first face to the left of the edge, and the second face to
+        # the right of the edge.
+
         integrated_velocity = velocity * edge_depth * edge_length
 
         # compute the flow 
