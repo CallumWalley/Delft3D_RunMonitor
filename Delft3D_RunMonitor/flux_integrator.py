@@ -4,30 +4,17 @@ import numpy as np
 class FluxIntegrator:
     """
     Compute the intersections of a 2D line segment with a triangular mesh.
-
-    Parameters
-    ----------
-    points : (N, 2) array
-        Node coordinates.
-    triangles : (M, 3) array
-        Triangle connectivity.
-    p0 : (2,) array-like
-        Start point of the line.
-    p1 : (2,) array-like
-        End point of the line.
-
-    Attributes
-    ----------
-    segments : list of tuples
-        Each tuple is
-
-            (triangle_id, xi_a, eta_a, xi_b, eta_b)
-
-        where (xi_a, eta_a) and (xi_b, eta_b) are the barycentric
-        coordinates of the segment endpoints inside the triangle.
     """
 
     def __init__(self, points, triangles, edges, p0, p1, tol=1e-12):
+        """
+        Constructor
+         - points: Nx2 array of node coordinates
+         - triangles: Mx3 array of triangle vertex indices (0-based)
+         - edges: Kx2 array of edge vertex indices (0-based)
+         - p0, p1: endpoints of the line segment (2D coordinates)
+         - tol: tolerance for geometric computations
+        """
 
         self.points = np.asarray(points, dtype=float)
         self.triangles = np.asarray(triangles, dtype=int)
@@ -38,7 +25,7 @@ class FluxIntegrator:
 
         self.tol = tol
 
-        self._build_nodes_edge()
+        self.nodes_edge = {tuple(iaib) : ie for ie, iaib in enumerate(self.edges)}
         self.segments = self._build_segments()
 
     @staticmethod
@@ -109,10 +96,6 @@ class FluxIntegrator:
         # bary are the full barycentric coordinates (l0, l1, l2), l0 + l1 + l2 = 1
         return np.all(bary >= -self.tol)
     
-    def _build_nodes_edge(self):
-
-        self.nodes_edge = {tuple(iaib) : ie for ie, iaib in enumerate(self.edges)}
-
     def _build_segments(self):
 
         segments = []
@@ -228,6 +211,7 @@ class FluxIntegrator:
 
                 weight = ws[i]
                 ia, ib = tri[i], tri[(i + 1) % 3]
+                edge_id = -1
 
                 if (ia, ib) in self.nodes_edge:
                     edge_id = self.nodes_edge[(ia, ib)]
@@ -236,6 +220,8 @@ class FluxIntegrator:
                     edge_id = self.nodes_edge[(ib, ia)]
                     sign = -1
                 else:
+                    print(f"ERROR: Cannot find edge {edge_id} {ia} -> {ib} or {ib} -> {ia} in the edge list")
+                    print(f"  Triangle {face_id} has nodes {tri} with coordinates {self.points[tri]}")
                     raise RuntimeError(f"Cannot find edge {ia} -> {ib}")
             
                 self.weights[edge_id] = self.weights.get(edge_id, 0) + weight * sign
