@@ -1,5 +1,5 @@
 import numpy as np
-import triangle as tr
+from triangle import Triangle
 import time
 
 from Delft3D_RunMonitor import compute_clipped_volume, VolumeIntegrator
@@ -31,12 +31,12 @@ def test_simple():
     print(f'xyb = {xyb}')
     print(f'segs = {segs}')
 
-    result = tr.triangulate(
-        {'vertices': np.array(xyb), 'segments': np.array(segs)},
-        'pzq10a0.5eQ'
-    )
-    points = result['vertices']
-    triangles = result['triangles']
+    tri = Triangle()
+    tri.set_points(xyb)
+    tri.set_segments(segs)
+    tri.triangulate(area=0.5, mode='pzq10eQ')
+    points = np.asarray([xy[0] for xy in tri.get_points()])
+    triangles = np.asarray([t[0] for t in tri.get_triangles()])
 
     print(f'points = {points}')
     print(f'triangles = {triangles}')
@@ -58,7 +58,7 @@ def test_simple():
     assert abs(volume - exact_volume) < 1.e-10
 
 
-def test_paritally_overlapping():
+def test_partially_overlapping():
 
     # ---------------------------------------------------------
     # 1. triangulated domain a square
@@ -89,12 +89,12 @@ def test_paritally_overlapping():
     print(f'xyb = {xyb}')
     print(f'segs = {segs}')
 
-    result = tr.triangulate(
-        {'vertices': np.array(xyb), 'segments': np.array(segs)},
-        'pzq10a0.5eQ'
-    )
-    points = result['vertices']
-    triangles = result['triangles']
+    tri = Triangle()
+    tri.set_points(xyb)
+    tri.set_segments(segs)
+    tri.triangulate(area=0.5, mode='pzq10eQ')
+    points = np.asarray([xy[0] for xy in tri.get_points()])
+    triangles = np.asarray([t[0] for t in tri.get_triangles()])
 
     print(f'points = {points}')
     print(f'triangles = {triangles}')
@@ -116,7 +116,7 @@ def test_paritally_overlapping():
     assert abs(volume - exact_volume) < 1.e-10
 
 
-def test_paritally_overlapping_big():
+def test_partially_overlapping_big():
 
     # ---------------------------------------------------------
     # 1. triangulated domain a square
@@ -144,12 +144,12 @@ def test_paritally_overlapping_big():
     n = len(xyb)
     segs = [(i, i + 1) for i in range(n)] + [(n - 1, 0)]
 
-    result = tr.triangulate(
-        {'vertices': np.array(xyb), 'segments': np.array(segs)},
-        'pzq10a0.5eQ'
-    )
-    points = result['vertices']
-    triangles = result['triangles']
+    tri = Triangle()
+    tri.set_points(xyb)
+    tri.set_segments(segs)
+    tri.triangulate(area=0.5, mode='pzq10eQ')
+    points = np.asarray([xy[0] for xy in tri.get_points()])
+    triangles = np.asarray([t[0] for t in tri.get_triangles()])
 
     ncells = triangles.shape[0]
     print(f'number of cells: {ncells}')
@@ -170,7 +170,6 @@ def test_paritally_overlapping_big():
     t3 = time.time()
 
     print(f'Times: {t1 - t0} STR tree {t3 - t2} secs' )
-
 
     assert abs(volume1 - exact_volume) < 1.e-10
     assert abs(volume2 - exact_volume) < 1.e-10

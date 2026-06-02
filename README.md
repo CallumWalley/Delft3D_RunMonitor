@@ -16,7 +16,7 @@ source .venv/bin/activate
 
 To build the package:
 ```
-pip install -r requirements.txt
+pip install -e .
 ```
 This will also install dependencies.
 

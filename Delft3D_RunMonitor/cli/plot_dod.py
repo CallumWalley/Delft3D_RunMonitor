@@ -17,7 +17,7 @@ from Delft3D_RunMonitor import MultiUGridMesh, PlotView, Viewer, CrossSectionOve
 
 def _dod(mesh, ti):
     """Bed level change relative to t=0 (depth of difference)."""
-    bed_t0 = mesh.readField("mesh2d_s1", 0)  - mesh.readField("mesh2d_dg", 0)
+    bed_t0 = mesh.readField("mesh2d_s1", 0) - mesh.readField("mesh2d_dg", 0)
     bed_ti = mesh.readField("mesh2d_s1", ti) - mesh.readField("mesh2d_dg", ti)
     return bed_ti - bed_t0
 
@@ -45,9 +45,9 @@ def main(*, mappattern: str = "FlowFM_*_map.nc",
     overlays = [CrossSectionOverlay(xs_file)] if xs_file else []
 
     viewer = Viewer([
-        PlotView(mesh, "mesh2d_waterdepth",
+        PlotView(mesh, "mesh2d_waterdepth", title="Water Depth (m)",
                  clim=[0, wd_max], overlays=overlays),
-        PlotView(mesh, field_fn=_dod,
+        PlotView(mesh, field_fn=_dod, title="Depth of Difference (m)",
                  clim=[-dod_max, dod_max], cmap="bwr", overlays=overlays),
     ], t0=b, t1=e, step=step)
 

@@ -31,7 +31,7 @@ dependencies = [
     "matplotlib",
     "scikit-learn",
     "shapely",
-    "triangle==20250106",
+    "pytriangle",
 ]
 
 [project.optional-dependencies]
