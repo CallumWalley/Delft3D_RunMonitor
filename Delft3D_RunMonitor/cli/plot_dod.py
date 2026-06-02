@@ -45,9 +45,9 @@ def main(*, mappattern: str = "FlowFM_*_map.nc",
     overlays = [CrossSectionOverlay(xs_file)] if xs_file else []
 
     viewer = Viewer([
-        PlotView(mesh, "mesh2d_waterdepth",
+        PlotView(mesh, "mesh2d_waterdepth", title="Water Depth (m)",
                  clim=[0, wd_max], overlays=overlays),
-        PlotView(mesh, field_fn=_dod,
+        PlotView(mesh, field_fn=_dod, title="Depth of Difference (m)",
                  clim=[-dod_max, dod_max], cmap="bwr", overlays=overlays),
     ], t0=b, t1=e, step=step)
 

@@ -36,8 +36,14 @@ VIDEO_FORMATS     = {'.mp4', '.avi', '.mov'}
 GIF_FORMATS       = {'.gif'}
 ANIMATION_FORMATS = VIDEO_FORMATS | GIF_FORMATS
 
-# Default scalar-bar style: vertical bar on the right-hand side.
-DEFAULT_SCALAR_BAR = {'position_x': 0.85, 'vertical': True}
+# position_x/y are panel-relative (0-1 within the subplot viewport).
+DEFAULT_SCALAR_BAR = {
+    'vertical':   True,
+    'position_x': 0.82,
+    'position_y': 0.05,
+    'height':     0.90,
+    'width':      0.05,
+}
 
 
 # --------------------------------------------------------------------------- #
@@ -221,11 +227,15 @@ class PlotView:
         ``[cmin, cmax]`` plot limits.
     cmap:
         Matplotlib colormap name.
+    title:
+        Label shown below the scalar bar.  Defaults to *varname* when given,
+        or empty for derived fields.
     overlays:
         List of overlay objects (e.g. ``CrossSectionOverlay``).
     scalar_bar_args:
         Dict of keyword arguments forwarded to PyVista's scalar bar.
-        Defaults to :data:`DEFAULT_SCALAR_BAR` (right-hand side, vertical).
+        Defaults to :data:`DEFAULT_SCALAR_BAR`.  All position values are
+        panel-relative (0–1 within the subplot).
     **mesh_kwargs:
         Any additional keyword arguments accepted by ``pyvista.Plotter.add_mesh``
         (e.g. ``show_edges=True``, ``opacity=0.8``, ``nan_color='grey'``).
@@ -233,7 +243,7 @@ class PlotView:
     """
 
     def __init__(self, mesh, varname: str = None, field_fn=None,
-                 clim=None, cmap: str = 'plasma',
+                 clim=None, cmap: str = 'plasma', title: str = None,
                  overlays: list = None, scalar_bar_args: dict = None,
                  **mesh_kwargs):
 
@@ -249,6 +259,7 @@ class PlotView:
         self.field_fn = field_fn
         self.clim = clim
         self.cmap = cmap
+        self.title = title if title is not None else (varname or '')
         self.overlays = overlays or []
         self.scalar_bar_args = dict(DEFAULT_SCALAR_BAR) if scalar_bar_args is None else scalar_bar_args
         self.mesh_kwargs = mesh_kwargs
@@ -341,40 +352,52 @@ class Viewer:
         for view in self.views:
             view._init_polydata()
 
+    def _add_view_to_subplot(self, pl: pv.Plotter, idx: int, view) -> None:
+        """Activate subplot *idx*, add *view*'s mesh, overlays, and title label."""
+        row, col = divmod(idx, self.shape[1])
+        pl.subplot(row, col)
+
+        # PyVista keys scalar bars by title; inject a unique one per view so
+        # each panel's bar is stored separately.
+        sb_args = dict(view.scalar_bar_args)
+        sb_args.setdefault('title', f'_view_{idx}')
+        pl.add_mesh(
+            view._polydata,
+            scalars=view._scalar_name,
+            clim=view.clim,
+            cmap=view.cmap,
+            scalar_bar_args=sb_args,
+            **view.mesh_kwargs,
+        )
+        try:
+            actor = pl.scalar_bars[sb_args['title']]
+            # Switch to panel-relative coordinates so position_x/y in
+            # scalar_bar_args are interpreted within this subplot, not the window.
+            actor.GetPositionCoordinate().SetCoordinateSystemToNormalizedViewport()
+            actor.GetPosition2Coordinate().SetCoordinateSystemToNormalizedViewport()
+            actor.SetTitle('')
+        except KeyError:
+            pass
+
+        for overlay in view.overlays:
+            overlay.add_to(pl)
+
+        if view.title:
+            pl.add_text(view.title, position='lower_right',
+                        font_size=9, name=f'_bar_title_{idx}')
+
     def _populate_plotter(self, pl: pv.Plotter):
         """Add each view's mesh and overlays to the appropriate subplot."""
         for idx, view in enumerate(self.views):
-            row, col = divmod(idx, self.shape[1])
-            pl.subplot(row, col)
-            pl.add_mesh(
-                view._polydata,
-                scalars=view._scalar_name,
-                clim=view.clim,
-                cmap=view.cmap,
-                scalar_bar_args=view.scalar_bar_args,
-                **view.mesh_kwargs,
-            )
-            for overlay in view.overlays:
-                overlay.add_to(pl)
+            self._add_view_to_subplot(pl, idx, view)
         pl.link_views()
 
     def _render_frame(self, pl: pv.Plotter, ti: int) -> None:
         """Clear *pl* and redraw all views at time index *ti*."""
         pl.clear()
         for idx, view in enumerate(self.views):
-            row, col = divmod(idx, self.shape[1])
-            pl.subplot(row, col)
             view._update(ti)
-            pl.add_mesh(
-                view._polydata,
-                scalars=view._scalar_name,
-                clim=view.clim,
-                cmap=view.cmap,
-                scalar_bar_args=view.scalar_bar_args,
-                **view.mesh_kwargs,
-            )
-            for overlay in view.overlays:
-                overlay.add_to(pl)
+            self._add_view_to_subplot(pl, idx, view)
 
     def _clamp_time_range(self, t0: int, t1: int) -> tuple:
         """Resolve negative indices and clamp to valid range."""
