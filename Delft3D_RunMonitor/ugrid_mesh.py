@@ -27,6 +27,25 @@ class UGridMesh:
         self.nc = Dataset(filename, "r")
         self._readMesh(meshname)
 
+    def _readConnectivity(self, name: str):
+        """
+        Read the connectivity variable (face_node_connectivity or edge_node_connectivity)
+        and convert to 0-based indexing. Handle fill values for ragged arrays.
+
+        :param name: variable name in the NetCDF file
+        :return: connectivity array with 0-based indexing and fill values replaced by -1
+        """
+
+        var = self.nc.variables[name]
+        conn = var[:].astype(np.int64) - var.getncattr("start_index", 0)
+
+        # Handle fill values (ragged arrays)
+        fill_value = getattr(var, "_FillValue", None)
+        if fill_value is not None:
+            conn = np.where(conn == fill_value, -1, conn)
+
+        return conn
+
     def _readMesh(self, meshname: str):
         """
         Read the UGrid mesh (points and connectivity)
@@ -41,34 +60,11 @@ class UGridMesh:
         self.x = self.nc.variables[names.node_coordinates.split()[0]][:]
         self.y = self.nc.variables[names.node_coordinates.split()[1]][:]
 
-        # --- Edge connectivity ---
-        edge_var = self.nc.variables[names.edge_node_connectivity]
-        self.edge_nodes = edge_var[:].astype(np.int64)
+        # --- connectivities ---
+        self.edge_nodes = self._readConnectivity(names.edge_node_connectivity)
+        self.face_nodes = self._readConnectivity(names.face_node_connectivity)
+        self.edge_faces = self._readConnectivity(names.edge_face_connectivity)
 
-        # Convert to 0-based indexing if needed
-        start_index = getattr(edge_var, "start_index", 0)
-        if start_index != 0:
-            self.edge_nodes -= start_index
-
-        # --- Face connectivity ---
-        face_var = self.nc.variables[names.face_node_connectivity]
-        self.face_nodes = face_var[:].astype(np.int64)
-
-        # Handle fill values (ragged faces)
-        fill_value = getattr(face_var, "_FillValue", None)
-        if fill_value is not None:
-            self.face_nodes = np.where(
-                self.face_nodes == fill_value, -1, self.face_nodes
-            )
-
-        # Convert to 0-based indexing
-        start_index = getattr(face_var, "start_index", 0)
-        if start_index != 0:
-            self.face_nodes = np.where(
-                self.face_nodes >= 0,
-                self.face_nodes - start_index,
-                self.face_nodes
-            )
 
     def readField(self, varname: str, time_index: int):
         """
@@ -78,7 +74,8 @@ class UGridMesh:
         :param time_index: time index
         """
         return self.nc.variables[varname][time_index, :]
-    
+
+
     def _buildVTKPolyData(self):
         """
         Build the VTK PolyData object

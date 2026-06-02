@@ -2,6 +2,8 @@ import numpy as np
 import pyvista as pv
 from .ugrid_mesh import UGridMesh
 import time
+from collections import defaultdict
+from itertools import combinations
 
 
 class MultiUGridMesh(UGridMesh):
@@ -29,7 +31,6 @@ class MultiUGridMesh(UGridMesh):
         """
         data_list = [m.readField(varname=varname, time_index=time_index) for m in self.meshes]
         return np.concatenate(data_list)
-
 
     def to_pyvista(self, varname=None, time_index=None):
         """
