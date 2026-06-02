@@ -227,14 +227,16 @@ class FluxIntegrator:
                 self.weights[edge_id] = self.weights.get(edge_id, 0) + weight * sign
 
 
-    def get_flux(self, edge_values):
+    def get_flux(self, edge_values: np.ndarray) -> float:
         """
         Compute the flux across the line segment by summing the contributions from the intersected edges.
 
         Parameters
         ----------
-        edge_values : dict
-            A dictionary mapping edge_id to the value of the field on that edge.
+        edge_values : Array-like
+            Value of the field on each edge. This should be flux integrated value for each edge.
+            If using point values at the edge midpoints, the flux should be multiplied by the 
+            edge length and vertical depth before calling this function.
 
         Returns
         -------
