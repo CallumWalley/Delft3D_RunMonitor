@@ -391,6 +391,12 @@ class Viewer:
         for idx, view in enumerate(self.views):
             self._add_view_to_subplot(pl, idx, view)
         pl.link_views()
+        self._setup_camera(pl)
+
+    def _setup_camera(self, pl: pv.Plotter) -> None:
+        """Set top-down orthographic projection."""
+        pl.view_xy()
+        pl.camera.parallel_projection = True
 
     def _render_frame(self, pl: pv.Plotter, ti: int) -> None:
         """Clear *pl* and redraw all views at time index *ti*."""
@@ -509,6 +515,10 @@ class Viewer:
         tic = _time.time()
 
         pl = pv.Plotter(shape=self.shape, off_screen=True)
+
+        # Render one frame so the plotter has bounds before setting camera.
+        self._render_frame(pl, t0)
+        self._setup_camera(pl)
 
         if ext in ANIMATION_FORMATS:
             if ext in GIF_FORMATS:
