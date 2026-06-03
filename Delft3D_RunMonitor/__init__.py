@@ -12,3 +12,10 @@ from .viewer import (
 __all__ = ["MultiUGridMesh", "UGridMesh", "VolumeIntegrator", "FluxIntegrator",
            "calculate_clean_centerline", "triangle_area", "compute_clipped_volume", "export_frames"]
 
+__all__ = [
+    "MultiUGridMesh", "UGridMesh", "VolumeIntegrator", "FluxIntegrator",
+    "calculate_clean_centerline", "triangle_area", "compute_clipped_volume",
+    "CrossSectionOverlay", "PlotView", "Viewer",
+    "add_cross_sections", "export_frames",
+    "IMAGE_FORMATS", "MESH_FORMATS", "VIDEO_FORMATS", "GIF_FORMATS", "ANIMATION_FORMATS",
+]
