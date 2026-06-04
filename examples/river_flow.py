@@ -42,28 +42,21 @@ def main(*, mapnames: List[str]=['FlowFM_0000_map.nc'], time_index: int=1,
         if show_plot:
             plt.triplot(points[:, 0], points[:, 1], mesh.face_nodes)
 
-        # read the data
-        velocity = mesh.readField(varname='mesh2d_u1', time_index=time_index)
-        # depth is defined on triangle
-        depth = mesh.readField(varname='mesh2d_waterdepth', time_index=time_index)
-        # average depth on edge
-        edge_depth = 0.5 * (mesh.edge_faces[:, 0]  + mesh.edge_faces[:, 1])
-        # length of the edge (do we need z here?)
-        edge_length = np.linalg.norm(points[mesh.edge_nodes[:, 1]] - points[mesh.edge_nodes[:, 0]], axis=1)
-        # the flux integrator wants integred fluxes at the edges
-        # NEED TO CHECK SIGN OF THE EDGE FLOW!!!! Here we assume the diretion tof the flow to be given by edge direction cross z.
-        # This means that the edge to faces connectivity must have the first face to the left of the edge, and the second face to
-        # the right of the edge.
+        #
+        # Read the data
+        #
 
-        integrated_velocity = velocity * edge_depth * edge_length
+        # edge centred velocity values at the current time step
+        velocity = mesh.readField(varname='mesh2d_u1', time_index=time_index)
+        # face centred depth values
+        depth = mesh.readField(varname='mesh2d_waterdepth', time_index=time_index)
 
         # compute the flow 
         fi = FluxIntegrator(points, mesh.face_nodes, mesh.edge_nodes, (x0b, y0b), (x0e, y0e))
+        flux_increment = fi.get_flow_from_u(u=velocity, depths=depth, edge_faces=mesh.edge_faces)
 
-        flux_increment = fi.get_flux(integrated_velocity) 
         print(f'  Flow increment: {flux_increment:.0f} m^3/s')
         flow_total += flux_increment
-
 
     print(f'Total flow: {flow_total:.0f} m^3/s at time index {time_index}')
 
