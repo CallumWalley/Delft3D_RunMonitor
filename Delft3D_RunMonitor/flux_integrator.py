@@ -297,26 +297,43 @@ class FluxIntegrator:
 
             # Compute the lateral area associated with this edge, 
             # typically the edge length multiplied by the average depth of the 
-            # two adjacent triangles. For boundary edges, we can use the depth of the 
-            # single adjacent triangle.
+            # two adjacent triangles. 
+            # 
+            # For boundary edges, we can use the depth of the 
+            # single adjacent triangle. When reading edge_faces from file, some 
+            # boundary edges may have a missing value, which is set to -1 in 
+            # UGridMesh.
             lateral_area = 0.0
             mid_point_face_a = None
             mid_point_face_b = None
-            sign = 0.0
             if face_a >= 0 and face_b >= 0:
+
+                # normal case, two adjacent triangles, use the average depth of the two triangles
                 lateral_area = 0.5 * (depths[face_a] + depths[face_b]) * self.edge_lengths[i]
                 mid_point_face_a = self.points[self.triangles[face_a]].mean(axis=0)
                 mid_point_face_b = self.points[self.triangles[face_b]].mean(axis=0)
+
             elif face_a >= 0:
+
+                # only face a is valid, use its depth for the lateral area. 
                 lateral_area = depths[face_a] * self.edge_lengths[i]
                 mid_point_face_a = self.points[self.triangles[face_a]].mean(axis=0)
+
                 # use the mid edge point as the mid point for the boundary edge, since we only have one adjacent triangle
                 mid_point_face_b = self.points[self.edges[i]].mean(axis=0)
+
             elif face_b >= 0:
+
+                # only face b is valid, use its depth for the lateral area.
                 lateral_area = depths[face_b] * self.edge_lengths[i]
                 mid_point_face_b = self.points[self.triangles[face_b]].mean(axis=0)
+
                 # use the mid edge point as the mid point for the boundary edge, since we only have one adjacent triangle
                 mid_point_face_a = self.points[self.edges[i]].mean(axis=0)
+
+            else:
+                # This should not happen, every edge should have at least one adjacent triangle
+                raise RuntimeError(f"Edge {i} has no adjacent triangles: faces {face_a}, {face_b}")
 
             # The convention in Delft3D is that the flow is positive in the direction of left to 
             # right face.
