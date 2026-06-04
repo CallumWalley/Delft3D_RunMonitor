@@ -3,7 +3,7 @@ import numpy as np
 
 class FluxIntegrator:
     """
-    Compute the intersections of a 2D line segment with a triangular mesh.
+    Compute the lateral flux across a 2D line intersecting triangular mesh.
     """
 
     def __init__(self, points, triangles, edges, p0, p1, tol=1e-12):
