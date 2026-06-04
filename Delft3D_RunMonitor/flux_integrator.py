@@ -319,7 +319,7 @@ class FluxIntegrator:
                 mid_point_face_a = self.points[self.edges[i]].mean(axis=0)
 
             # The convention in Delft3D is that the flow is positive in the direction of left to 
-            #` right face.
+            # right face.
             sign = 1.0 if self._cross2(mid_point_face_b - mid_point_face_a, self.p1 - self.p0) > 0 else -1.0
 
             flow_values[i] = sign * lateral_area * u[i]
