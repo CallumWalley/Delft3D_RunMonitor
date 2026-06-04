@@ -303,6 +303,10 @@ class FluxIntegrator:
             # single adjacent triangle. When reading edge_faces from file, some 
             # boundary edges may have a missing value, which is set to -1 in 
             # UGridMesh.
+
+            #
+            # In all cases, we assume units to be consistent, i.e. if u is in m/s, 
+            # edge length is in m, and depth is in m, then the flow will be in m^3/s.
             lateral_area = 0.0
             mid_point_face_a = None
             mid_point_face_b = None
