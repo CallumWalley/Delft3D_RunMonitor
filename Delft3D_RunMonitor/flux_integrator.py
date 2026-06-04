@@ -35,6 +35,7 @@ class FluxIntegrator:
 
     @staticmethod
     def _cross2(a, b):
+        # 2D cross product (scalar), returns the z-component of the 3D cross product
         return a[0] * b[1] - a[1] * b[0]
 
     def _line_segment_intersection_parameter(self, a, b):
@@ -240,8 +241,12 @@ class FluxIntegrator:
         ----------
         edge_values : Array-like
             Value of the field on each edge. This should be flux integrated value for each edge.
-            If using point values at the edge midpoints, the flux should be multiplied by the 
-            edge length and vertical depth before calling this function.
+            If using point values at the edge midpoints, then the edge_value should be the point value
+            multiplied by the edge length and vertical depth. 
+            
+            Beware of the sign convention for the flux values on the edges, the flux is in the 
+            direction of (xb - xa, yb - ya, 0) x (0, 0, 1)  where (xa, ya) and (xb, yb) are the 
+            2D coordinates of the edge vertices.
 
         Returns
         -------
@@ -251,6 +256,7 @@ class FluxIntegrator:
 
         flux = 0.0
 
+        # sum up the values on the edges, weighted by the precomputed weights
         for edge_id, weight in self.weights.items():
             value = edge_values[edge_id]
             flux += weight * value
