@@ -25,8 +25,13 @@ class FluxIntegrator:
 
         self.tol = tol
 
+        # node (ia, ib) to edge (ie) connectivity
         self.nodes_edge = {tuple(iaib) : ie for ie, iaib in enumerate(self.edges)}
-        self.segments = self._build_segments()
+
+        # copute the interpolation weights. This depends on the geometry only, 
+        # not on the field values, so we can compute it once and reuse for
+        # time steps.
+        self.segments = self._compute_weights()
 
     @staticmethod
     def _cross2(a, b):
@@ -96,7 +101,7 @@ class FluxIntegrator:
         # bary are the full barycentric coordinates (l0, l1, l2), l0 + l1 + l2 = 1
         return np.all(bary >= -self.tol)
     
-    def _build_segments(self):
+    def _compute_weights(self):
 
         segments = []
 
