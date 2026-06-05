@@ -36,6 +36,7 @@ class UGridMesh:
         :return: connectivity array with 0-based indexing and fill values replaced by -1
         """
 
+        # Read the connectivity variable and convert to 0-based indexing
         var = self.nc.variables[name]
         conn = var[:].astype(np.int64) - var.getncattr("start_index", 0)
 
