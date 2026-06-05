@@ -62,6 +62,24 @@ def main(*, mapname: str='FlowFM_0000_map.nc',
         plt.xlabel(f'time {mesh.time.units}')
         plt.ylabel('flow (m^3/s)')
         plt.title(f'Outward flow from triangle {face_index} in {mapname}')
+
+
+        # plot the face and the triangular mesh
+        _, ax = plt.subplots()
+
+        # plot the full triangular mesh in black
+        ax.triplot(mesh.x, mesh.y, mesh.face_nodes[:, :3], color='k', linewidth=0.5)
+
+        # highlight the selected triangle in red
+        hi = mesh.face_nodes[face_index, :3]
+        ax.fill(mesh.x[hi], mesh.y[hi], color='red', alpha=0.3)
+        ax.plot(mesh.x[hi[[0, 1, 2, 0]]], mesh.y[hi[[0, 1, 2, 0]]], 'r-', linewidth=2)
+
+        ax.set_aspect('equal')
+        ax.set_title(f'Triangle {face_index} in {mapname}')
+        ax.set_xlabel('x (m)')
+        ax.set_ylabel('y (m)')
+
         plt.show()
 
 
