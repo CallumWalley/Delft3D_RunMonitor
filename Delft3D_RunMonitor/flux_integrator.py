@@ -16,6 +16,12 @@ class FluxIntegrator:
          - tol: tolerance for geometric computations
         """
 
+        # list of segments intersecting the line, each segment is a tuple of (face_id, xi_a, eta_a, xi_b, eta_b)
+        self.segments = []
+
+        # list of edge weights for the flux integration, key is edge_id, value is the weight for that edge
+        self.weights = {}
+
         self.points = np.asarray(points, dtype=float)
         self.triangles = np.asarray(triangles, dtype=int)
         self.edges = np.asarray(edges, dtype=int)
@@ -109,7 +115,7 @@ class FluxIntegrator:
     
     def _compute_weights(self):
 
-        segments = []
+        self.segments = []
 
         line_dir = self.p1 - self.p0
 
@@ -189,7 +195,7 @@ class FluxIntegrator:
             xi_a, eta_a = bary_a[1], bary_a[2]
             xi_b, eta_b = bary_b[1], bary_b[2]
 
-            segments.append(
+            self.segments.append(
                 (
                     tri_id,
                     xi_a,
@@ -201,7 +207,7 @@ class FluxIntegrator:
 
         self.weights = {}
 
-        for face_id, xi_a, eta_a, xi_b, eta_b in segments:
+        for face_id, xi_a, eta_a, xi_b, eta_b in self.segments:
 
             xibar = 0.5*(xi_a + xi_b)
             etabar = 0.5*(eta_a + eta_b)
@@ -336,8 +342,10 @@ class FluxIntegrator:
                 mid_point_face_a = self.points[self.edges[i]].mean(axis=0)
 
             else:
-                # This should not happen, every edge should have at least one adjacent triangle
-                raise RuntimeError(f"Edge {i} has no adjacent triangles: faces {face_a}, {face_b}")
+                #print(f"Warning: edge {i} has no adjacent triangles! flow value stays zero")
+                # Just ignore this edge, flux value is zero
+                continue
+
 
             # The convention in Delft3D is that the flow is positive in the direction of left to 
             # right face.
