@@ -241,7 +241,8 @@ class FluxIntegrator:
                     print(f"  Triangle {face_id} has nodes {tri} with coordinates {self.points[tri]}")
                     raise RuntimeError(f"Cannot find edge {ia} -> {ib}")
             
-                self.weights[edge_id] = self.weights.get(edge_id, 0) + weight * sign
+                # add the weight
+                self.weights[edge_id] = self.weights.get(edge_id, 0.0) + weight * sign
 
 
     def get_flux(self, edge_values: np.ndarray) -> float:
@@ -277,9 +278,9 @@ class FluxIntegrator:
 
     def get_flow_from_u(self, u: np.ndarray, depths: np.ndarray, edge_faces: np.ndarray) -> float:
         """
-        Compute the flow across the line segment from the edge velocity values. 
+        Compute the flow across the line segment using the edge velocity values. 
         This is a convenience method that combines the edge velocity with the edge lengths and 
-        depths to compute the flux.
+        depths to compute the flux and then the flow
 
         Parameters
         ----------
@@ -314,8 +315,11 @@ class FluxIntegrator:
             # In all cases, we assume units to be consistent, i.e. if u is in m/s, 
             # edge length is in m, and depth is in m, then the flow will be in m^3/s.
             lateral_area = 0.0
+
+            # to determine the sign
             mid_point_face_a = None
             mid_point_face_b = None
+
             if face_a >= 0 and face_b >= 0:
 
                 # normal case, two adjacent triangles, use the average depth of the two triangles
@@ -329,7 +333,7 @@ class FluxIntegrator:
                 lateral_area = depths[face_a] * self.edge_lengths[i]
                 mid_point_face_a = self.points[self.triangles[face_a]].mean(axis=0)
 
-                # use the mid edge point as the mid point for the boundary edge, since we only have one adjacent triangle
+                # use the mid edge point as the mid point since we only have one adjacent triangle
                 mid_point_face_b = self.points[self.edges[i]].mean(axis=0)
 
             elif face_b >= 0:
@@ -338,7 +342,7 @@ class FluxIntegrator:
                 lateral_area = depths[face_b] * self.edge_lengths[i]
                 mid_point_face_b = self.points[self.triangles[face_b]].mean(axis=0)
 
-                # use the mid edge point as the mid point for the boundary edge, since we only have one adjacent triangle
+                # use the mid edge point as the mid point since we only have one adjacent triangle
                 mid_point_face_a = self.points[self.edges[i]].mean(axis=0)
 
             else:
