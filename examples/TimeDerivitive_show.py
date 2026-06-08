@@ -12,5 +12,5 @@ def dh_dt(mesh, ti):
     f1 = mesh.readField('mesh2d_waterdepth', ti)
     return (f1 - f0) / (time[ti] - time[ti - 1])
 
-Viewer([PlotView(mesh, field_fn=dh_dt, clim=[-0.1, 0.1], cmap='bwr',
+Viewer([PlotView(mesh, field_fn=dh_dt, clim=[-0.0001, 0.0001], cmap='bwr',
                  title='dh/dt (m/s)')]).show()
