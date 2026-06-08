@@ -412,8 +412,7 @@ class Viewer:
         self.nt     = len(self.time)
         self.t0     = t0
         self.t1     = t1
-        self.step        = step
-        self._export_path = output
+        self.step   = step
 
     # ------------------------------------------------------------------ #
     # Internal helpers                                                     #
@@ -620,21 +619,6 @@ class Viewer:
         print(f"Wrote {nframes} frame(s) to {outfile} "
               f"in {elapsed:.1f}s ({elapsed / max(nframes, 1):.2f}s/frame)")
 
-    def view(self):
-        """Open an interactive window (alias for :meth:`show`)."""
-        self.show()
-
-    def output(self, outfile: str = 'animation.mp4',
-               t0: int = None, t1: int = None, step: int = None):
-        """Export frames to *outfile* (alias for :meth:`export`)."""
-        self.export(outfile, t0=t0, t1=t1, step=step)
-
-    def run(self, output: str = None) -> None:
-        out = output or self._export_path
-        if out:
-            self.export(out)
-        else:
-            self.show()
 
     def export_movie(self, outfile: str = 'animation.mp4', t0: int = 0, t1: int = -1):
         """Write an MP4 covering time steps *t0* up to (but not including) *t1*.
