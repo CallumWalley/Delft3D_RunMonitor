@@ -46,14 +46,12 @@ def main(*, mapnames: List[str]=['FlowFM_0000_map.nc'], time_index: int=1,
         # Read the data
         #
 
-        # edge centred velocity values at the current time step
-        velocity = mesh.readField(varname='mesh2d_u1', time_index=time_index)
-        # face centred depth values
-        depth = mesh.readField(varname='mesh2d_waterdepth', time_index=time_index)
+        # edge centred integrated flow values at the current time step
+        q1 = mesh.readField(varname='mesh2d_q1', time_index=time_index)
 
         # compute the flow 
         fi = FluxIntegrator(points, mesh.face_nodes, mesh.edge_nodes, (x0b, y0b), (x0e, y0e))
-        flux_increment = fi.get_flow_from_u(u=velocity, depths=depth, edge_faces=mesh.edge_faces)
+        flux_increment = fi.get_flux(edge_values=q1)
 
         print(f'  Flow increment: {flux_increment:.0f} m^3/s')
         flow_total += flux_increment
