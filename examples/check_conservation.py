@@ -64,11 +64,7 @@ def main(*, mapname: str='FlowFM_0000_map.nc',
         #
 
         # edge centred velocity values at the current time step
-        u1 = mesh.readField(varname='mesh2d_u1', time_index=time_index)
         q1 = mesh.readField(varname='mesh2d_q1', time_index=time_index)
-
-        # face centred depth values
-        depth = mesh.readField(varname='mesh2d_waterdepth', time_index=time_index)
 
         #
         # total flow across the triangle, the edges are such that the flows point outwards
