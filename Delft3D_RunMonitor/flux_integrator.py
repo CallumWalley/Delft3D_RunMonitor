@@ -16,6 +16,12 @@ class FluxIntegrator:
          - tol: tolerance for geometric computations
         """
 
+        # list of segments intersecting the line, each segment is a tuple of (face_id, xi_a, eta_a, xi_b, eta_b)
+        self.segments = []
+
+        # list of edge weights for the flux integration, key is edge_id, value is the weight for that edge
+        self.weights = {}
+
         self.points = np.asarray(points, dtype=float)
         self.triangles = np.asarray(triangles, dtype=int)
         self.edges = np.asarray(edges, dtype=int)
@@ -109,7 +115,7 @@ class FluxIntegrator:
     
     def _compute_weights(self):
 
-        segments = []
+        self.segments = []
 
         line_dir = self.p1 - self.p0
 
@@ -189,7 +195,7 @@ class FluxIntegrator:
             xi_a, eta_a = bary_a[1], bary_a[2]
             xi_b, eta_b = bary_b[1], bary_b[2]
 
-            segments.append(
+            self.segments.append(
                 (
                     tri_id,
                     xi_a,
@@ -199,9 +205,10 @@ class FluxIntegrator:
                 )
             )
 
+        # compute the weights
         self.weights = {}
 
-        for face_id, xi_a, eta_a, xi_b, eta_b in segments:
+        for face_id, xi_a, eta_a, xi_b, eta_b in self.segments:
 
             xibar = 0.5*(xi_a + xi_b)
             etabar = 0.5*(eta_a + eta_b)
@@ -235,7 +242,8 @@ class FluxIntegrator:
                     print(f"  Triangle {face_id} has nodes {tri} with coordinates {self.points[tri]}")
                     raise RuntimeError(f"Cannot find edge {ia} -> {ib}")
             
-                self.weights[edge_id] = self.weights.get(edge_id, 0) + weight * sign
+                # add the weight
+                self.weights[edge_id] = self.weights.get(edge_id, 0.0) + weight * sign
 
 
     def get_flux(self, edge_values: np.ndarray) -> float:
@@ -267,83 +275,3 @@ class FluxIntegrator:
             flux += weight * value
 
         return flux
-    
-
-    def get_flow_from_u(self, u: np.ndarray, depths: np.ndarray, edge_faces: np.ndarray) -> float:
-        """
-        Compute the flow across the line segment from the edge velocity values. 
-        This is a convenience method that combines the edge velocity with the edge lengths and 
-        depths to compute the flux.
-
-        Parameters
-        ----------
-        u : Array-like of shape (E,)
-            Velocity value on each edge (point value at the edge midpoint).
-        depths : Array-like of shape (K,)
-            Water depths for each triangle.
-        edge_faces : Array-like of shape (E, 2)
-            For each edge, the indices of the two adjacent triangles (or -1 for boundary edges).
-
-        Returns
-        -------
-        flow : float
-            The computed flow across the line segment.
-        """
-
-        # compute the flow across each edge by multiplying the velocity with the edge length and 
-        # the average depth of the adjacent triangles
-        flow_values = np.zeros(len(self.edges))
-        for i, (face_a, face_b) in enumerate(edge_faces):
-
-            # Compute the lateral area associated with this edge, 
-            # typically the edge length multiplied by the average depth of the 
-            # two adjacent triangles. 
-            # 
-            # For boundary edges, we can use the depth of the 
-            # single adjacent triangle. When reading edge_faces from file, some 
-            # boundary edges may have a missing value, which is set to -1 in 
-            # UGridMesh.
-
-            #
-            # In all cases, we assume units to be consistent, i.e. if u is in m/s, 
-            # edge length is in m, and depth is in m, then the flow will be in m^3/s.
-            lateral_area = 0.0
-            mid_point_face_a = None
-            mid_point_face_b = None
-            if face_a >= 0 and face_b >= 0:
-
-                # normal case, two adjacent triangles, use the average depth of the two triangles
-                lateral_area = 0.5 * (depths[face_a] + depths[face_b]) * self.edge_lengths[i]
-                mid_point_face_a = self.points[self.triangles[face_a]].mean(axis=0)
-                mid_point_face_b = self.points[self.triangles[face_b]].mean(axis=0)
-
-            elif face_a >= 0:
-
-                # only face a is valid, use its depth for the lateral area. 
-                lateral_area = depths[face_a] * self.edge_lengths[i]
-                mid_point_face_a = self.points[self.triangles[face_a]].mean(axis=0)
-
-                # use the mid edge point as the mid point for the boundary edge, since we only have one adjacent triangle
-                mid_point_face_b = self.points[self.edges[i]].mean(axis=0)
-
-            elif face_b >= 0:
-
-                # only face b is valid, use its depth for the lateral area.
-                lateral_area = depths[face_b] * self.edge_lengths[i]
-                mid_point_face_b = self.points[self.triangles[face_b]].mean(axis=0)
-
-                # use the mid edge point as the mid point for the boundary edge, since we only have one adjacent triangle
-                mid_point_face_a = self.points[self.edges[i]].mean(axis=0)
-
-            else:
-                # This should not happen, every edge should have at least one adjacent triangle
-                raise RuntimeError(f"Edge {i} has no adjacent triangles: faces {face_a}, {face_b}")
-
-            # The convention in Delft3D is that the flow is positive in the direction of left to 
-            # right face.
-            sign = 1.0 if self._cross2(mid_point_face_b - mid_point_face_a, self.p1 - self.p0) > 0 else -1.0
-
-            flow_values[i] = sign * lateral_area * u[i]
-
-        # Now compute the flow from the edge integrated flux values...
-        return self.get_flux(flow_values)
