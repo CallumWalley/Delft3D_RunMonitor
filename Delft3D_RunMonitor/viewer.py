@@ -404,8 +404,7 @@ class Viewer:
     """
 
     def __init__(self, views: list, shape: tuple = None,
-                 t0: int = 0, t1: int = -1, step: int = 1,
-                 output: str = None):
+                 t0: int = 0, t1: int = -1, step: int = 1):
         self.views  = views
         self.shape  = shape or (1, len(views))
         self.time   = views[0].mesh.time
@@ -413,7 +412,6 @@ class Viewer:
         self.t0     = t0
         self.t1     = t1
         self.step   = step
-        self.output = output
 
     # ------------------------------------------------------------------ #
     # Internal helpers                                                     #
@@ -440,10 +438,7 @@ class Viewer:
             scalar_bar_args=sb_args,
             **view.mesh_kwargs,
         )
-        # try:
-        #     pl.scalar_bars[sb_args['title']].SetTitle('')
-        # except KeyError:
-        #     pass
+
         pl.scalar_bars[sb_args['title']].SetTitle('')
 
         for overlay in view.overlays:
@@ -620,12 +615,6 @@ class Viewer:
         print(f"Wrote {nframes} frame(s) to {outfile} "
               f"in {elapsed:.1f}s ({elapsed / max(nframes, 1):.2f}s/frame)")
 
-    def run(self, output: str = None) -> None:
-        out = output or self.output
-        if out:
-            self.export(out)
-        else:
-            self.show()
 
     def export_movie(self, outfile: str = 'animation.mp4', t0: int = 0, t1: int = -1):
         """Write an MP4 covering time steps *t0* up to (but not including) *t1*.
