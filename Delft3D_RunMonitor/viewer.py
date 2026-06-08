@@ -404,8 +404,7 @@ class Viewer:
     """
 
     def __init__(self, views: list, shape: tuple = None,
-                 t0: int = 0, t1: int = -1, step: int = 1,
-                 output: str = None):
+                 t0: int = 0, t1: int = -1, step: int = 1):
         self.views  = views
         self.shape  = shape or (1, len(views))
         self.time   = views[0].mesh.time
@@ -439,10 +438,7 @@ class Viewer:
             scalar_bar_args=sb_args,
             **view.mesh_kwargs,
         )
-        # try:
-        #     pl.scalar_bars[sb_args['title']].SetTitle('')
-        # except KeyError:
-        #     pass
+
         pl.scalar_bars[sb_args['title']].SetTitle('')
 
         for overlay in view.overlays:
