@@ -43,7 +43,10 @@ def main(*, mapname: str='FlowFM_0000_map.nc',
     fi20 = FluxIntegrator(points, mesh.face_nodes, mesh.edge_nodes, 
                           face_points[2,:2], face_points[0,:2])
     
-    print(f'face: {face_index} point_ids={point_ids} face_points={face_points}')
+    print(f'face: {face_index} point_ids={point_ids}')
+    print(f'face_points:')
+    for p in face_points:
+        print(f'{p}')
     print(f'edge 0->1: {face_points[0,:2]} -> {face_points[1,:2]}')
     print(f'edge 1->2: {face_points[1,:2]} -> {face_points[2,:2]}')
     print(f'edge 2->0: {face_points[2,:2]} -> {face_points[0,:2]}')
@@ -52,7 +55,6 @@ def main(*, mapname: str='FlowFM_0000_map.nc',
     print(f'fi12.weights = {fi12.weights}')
     print(f'fi20.weights = {fi20.weights}')
     
-    flows_u = []
     flows_q = []
 
     for time_index, tm in enumerate(mesh.time):
@@ -72,13 +74,6 @@ def main(*, mapname: str='FlowFM_0000_map.nc',
         # total flow across the triangle, the edges are such that the flows point outwards
         #
 
-        # flow from the u velocity, need to multiply with surface element
-        flowU01 = fi01.get_flow_from_u(u=u1, depths=depth, edge_faces=mesh.edge_faces)
-        flowU12 = fi12.get_flow_from_u(u=u1, depths=depth, edge_faces=mesh.edge_faces)
-        flowU20 = fi20.get_flow_from_u(u=u1, depths=depth, edge_faces=mesh.edge_faces)
-        flowU = flowU01 + flowU12 + flowU20
-        flows_u.append(flowU)
-
         # flow from q, already integrated across the element
         flowQ01 = fi01.get_flux(q1)
         flowQ12 = fi12.get_flux(q1)
@@ -86,7 +81,7 @@ def main(*, mapname: str='FlowFM_0000_map.nc',
         flowQ = flowQ01 + flowQ12 + flowQ20
         flows_q.append(flowQ)
 
-        print(f'  time index: {time_index:>6}  time: {tm:>10.2f} s total flow U/Q = {flowU:>12.3e}/{flowQ:>12.3e} edge contributions: {flowU01:.2f}/{flowQ01:.2f} {flowU12:.2f}/{flowQ12:.2f} {flowU20:.2f}/{flowQ20:.2f} m^3/s')
+        print(f'  time index: {time_index:>6}  time: {tm:>10.2f} s total flow q1 = {flowQ:>12.3e} edge contributions: {flowQ01:.2f} {flowQ12:.2f} {flowQ20:.2f} m^3/s')
 
 
     if show_plot:

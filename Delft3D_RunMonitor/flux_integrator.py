@@ -205,6 +205,7 @@ class FluxIntegrator:
                 )
             )
 
+        # compute the weights
         self.weights = {}
 
         for face_id, xi_a, eta_a, xi_b, eta_b in self.segments:
@@ -274,88 +275,3 @@ class FluxIntegrator:
             flux += weight * value
 
         return flux
-    
-
-    def get_flow_from_u(self, u: np.ndarray, depths: np.ndarray, edge_faces: np.ndarray) -> float:
-        """
-        Compute the flow across the line segment using the edge velocity values. 
-        This is a convenience method that combines the edge velocity with the edge lengths and 
-        depths to compute the flux and then the flow
-
-        Parameters
-        ----------
-        u : Array-like of shape (E,)
-            Velocity value on each edge (point value at the edge midpoint).
-        depths : Array-like of shape (K,)
-            Water depths for each triangle.
-        edge_faces : Array-like of shape (E, 2)
-            For each edge, the indices of the two adjacent triangles (or -1 for boundary edges).
-
-        Returns
-        -------
-        flow : float
-            The computed flow across the line segment.
-        """
-
-        # compute the flow across each edge by multiplying the velocity with the edge length and 
-        # the average depth of the adjacent triangles
-        flow_values = np.zeros(len(self.edges))
-        for i, (face_a, face_b) in enumerate(edge_faces):
-
-            # Compute the lateral area associated with this edge, 
-            # typically the edge length multiplied by the average depth of the 
-            # two adjacent triangles. 
-            # 
-            # For boundary edges, we can use the depth of the 
-            # single adjacent triangle. When reading edge_faces from file, some 
-            # boundary edges may have a missing value, which is set to -1 in 
-            # UGridMesh.
-
-            #
-            # In all cases, we assume units to be consistent, i.e. if u is in m/s, 
-            # edge length is in m, and depth is in m, then the flow will be in m^3/s.
-            lateral_area = 0.0
-
-            # to determine the sign
-            mid_point_face_a = None
-            mid_point_face_b = None
-
-            if face_a >= 0 and face_b >= 0:
-
-                # normal case, two adjacent triangles, use the average depth of the two triangles
-                lateral_area = 0.5 * (depths[face_a] + depths[face_b]) * self.edge_lengths[i]
-                mid_point_face_a = self.points[self.triangles[face_a]].mean(axis=0)
-                mid_point_face_b = self.points[self.triangles[face_b]].mean(axis=0)
-
-            elif face_a >= 0:
-
-                # only face a is valid, use its depth for the lateral area. 
-                lateral_area = depths[face_a] * self.edge_lengths[i]
-                mid_point_face_a = self.points[self.triangles[face_a]].mean(axis=0)
-
-                # use the mid edge point as the mid point since we only have one adjacent triangle
-                mid_point_face_b = self.points[self.edges[i]].mean(axis=0)
-
-            elif face_b >= 0:
-
-                # only face b is valid, use its depth for the lateral area.
-                lateral_area = depths[face_b] * self.edge_lengths[i]
-                mid_point_face_b = self.points[self.triangles[face_b]].mean(axis=0)
-
-                # use the mid edge point as the mid point since we only have one adjacent triangle
-                mid_point_face_a = self.points[self.edges[i]].mean(axis=0)
-
-            else:
-                #print(f"Warning: edge {i} has no adjacent triangles! flow value stays zero")
-                # Just ignore this edge, flux value is zero
-                continue
-
-
-            # The convention in Delft3D is that the flow is positive in the direction of left to 
-            # right face.
-            sign = 1.0 if self._cross2(mid_point_face_b - mid_point_face_a, self.p1 - self.p0) > 0 else -1.0
-
-            flow_values[i] = sign * lateral_area * u[i]
-
-        # Now compute the flow from the edge integrated flux values...
-        return self.get_flux(flow_values)
