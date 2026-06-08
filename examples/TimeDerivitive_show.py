@@ -13,4 +13,4 @@ def dh_dt(mesh, ti):
     return (f1 - f0) / (time[ti] - time[ti - 1])
 
 Viewer([PlotView(mesh, field_fn=dh_dt, clim=[-0.1, 0.1], cmap='bwr',
-                 title='dh/dt (m/s)')]).run()
+                 title='dh/dt (m/s)')]).show()
