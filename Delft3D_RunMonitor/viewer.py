@@ -239,6 +239,8 @@ class VelocityOverlay(Overlay):
         A ``UGridMesh`` or ``MultiUGridMesh`` instance.
     scale:
         Arrow length multiplier (metres of arrow per m/s of flow).
+    color:
+        Color for plot quiver.
     downsample:
         Plot every *downsample*-th face.
     """
@@ -246,7 +248,7 @@ class VelocityOverlay(Overlay):
     is_dynamic: bool = True
 
     def __init__(self, mesh, scale: float = 10.0, 
-                 color: str = 'red',
+                 color: str = 'white',
                  downsample: int = 100):
         self.mesh    = mesh
         self.scale   = scale
@@ -460,12 +462,15 @@ class Viewer:
         pl.view_xy()
         pl.camera.parallel_projection = True
 
-    def _render_frame(self, pl: pv.Plotter, ti: int) -> None:
-        """Clear *pl* and redraw all views at time index *ti*."""
-        pl.clear()
+    def _update_frame(self, pl: pv.Plotter, ti: int) -> None:
+        """Update all views and dynamic overlays in-place at time index *ti*."""
         for idx, view in enumerate(self.views):
             view._update(ti)
-            self._add_view_to_subplot(pl, idx, view, ti)
+            row, col = divmod(idx, self.shape[1])
+            for overlay in view.overlays:
+                if overlay.is_dynamic:
+                    pl.subplot(row, col)
+                    overlay.add_to(pl, ti)
 
     def _clamp_time_range(self, t0: int, t1: int) -> tuple:
         """Resolve negative indices and clamp to valid range."""
@@ -502,13 +507,7 @@ class Viewer:
         def _go(new_ti):
             nonlocal ti
             ti = max(t0, min(t1 - 1, new_ti))
-            for view in self.views:
-                view._update(ti)
-                for overlay in view.overlays:
-                    if overlay.is_dynamic:
-                        row, col = divmod(self.views.index(view), self.shape[1])
-                        pl.subplot(row, col)
-                        overlay.add_to(pl, ti)
+            self._update_frame(pl, ti)
             pl.add_text(
                 f"t = {ti} / {self.nt - 1}",
                 position='upper_left', font_size=12, name='_time_label',
@@ -564,6 +563,7 @@ class Viewer:
         """
         path = Path(outfile)
         ext = path.suffix.lower()
+        path.parent.mkdir(parents=True, exist_ok=True)
 
         if ext not in ANIMATION_FORMATS | IMAGE_FORMATS | MESH_FORMATS:
             raise ValueError(
@@ -582,10 +582,9 @@ class Viewer:
         tic = _time.time()
 
         pl = pv.Plotter(shape=self.shape, off_screen=True)
-
-        # Render one frame so the plotter has bounds before setting camera.
-        self._render_frame(pl, t0)
-        self._setup_camera(pl)
+        for view in self.views:
+            view._update(t0)
+        self._populate_plotter(pl, t0)
 
         if ext in ANIMATION_FORMATS:
             if ext in GIF_FORMATS:
@@ -594,7 +593,7 @@ class Viewer:
                 pl.open_movie(str(path))
 
             for ti in range(t0, t1, step):
-                self._render_frame(pl, ti)
+                self._update_frame(pl, ti)
                 pl.write_frame()
 
             pl.close()
@@ -603,7 +602,7 @@ class Viewer:
             for i, ti in enumerate(range(t0, t1, step)):
                 dest = (path if nframes == 1
                         else path.parent / f"{path.stem}_{i:04d}{path.suffix}")
-                self._render_frame(pl, ti)
+                self._update_frame(pl, ti)
                 if ext in IMAGE_FORMATS:
                     pl.screenshot(str(dest))
                 else:

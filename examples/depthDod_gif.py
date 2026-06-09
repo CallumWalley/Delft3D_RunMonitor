@@ -1,7 +1,7 @@
 from glob import glob
 import sys
 
-from Delft3D_RunMonitor import MultiUGridMesh, PlotView, Viewer, CrossSectionOverlay
+from Delft3D_RunMonitor import *
 
 def _dod(mesh, ti):
     """Bed level change relative to t=0 (depth of difference)."""
@@ -10,12 +10,12 @@ def _dod(mesh, ti):
     return bed_ti - bed_t0
 
 
-mesh = MultiUGridMesh(sorted(glob(sys.argv[2])))
-overlays = [CrossSectionOverlay(sorted(glob(sys.argv[1]))[0])]
+mesh = MultiUGridMesh(sorted(glob("data/*.nc")))
+overlays = [CrossSectionOverlay("data/cross_sections.txt")]
 
 Viewer([
     PlotView(mesh, "mesh2d_waterdepth", title="Water Depth (m)",
              overlays=overlays, clim=[0, 1]),
     PlotView(mesh, field_fn=_dod, title="Depth of Difference (m)",
                 cmap="bwr", clim=[-2, 2], overlays=overlays),
-]).run()
+]).export("dod.gif")
