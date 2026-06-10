@@ -1,6 +1,8 @@
-from glob import glob
-import sys
+"""
+Plot waterdepth and DOD with crossection overlays, export to gif.
+"""
 
+from glob import glob
 from Delft3D_RunMonitor import *
 
 def _dod(mesh, ti):
@@ -18,4 +20,4 @@ Viewer([
              overlays=overlays, clim=[0, 1]),
     PlotView(mesh, field_fn=_dod, title="Depth of Difference (m)",
                 cmap="bwr", clim=[-2, 2], overlays=overlays),
-]).export("dod.gif")
+]).export("dod.mp4")
