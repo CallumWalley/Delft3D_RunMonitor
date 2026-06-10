@@ -30,9 +30,7 @@ import numpy as np
 import pyvista as pv
 
 
-# --------------------------------------------------------------------------- #
 # Format sets                                                                  #
-# --------------------------------------------------------------------------- #
 
 IMAGE_FORMATS     = {'.png', '.jpg', '.jpeg'}
 MESH_FORMATS      = {'.stl', '.vtp', '.vtk', '.ply', '.obj'}
@@ -50,9 +48,7 @@ DEFAULT_SCALAR_BAR = {
 }
 
 
-# --------------------------------------------------------------------------- #
-# Cross-section helpers                                                        #
-# --------------------------------------------------------------------------- #
+# Cross-section helpers
 
 def _load_cross_sections(xs_file: str, z: float = 0.0) -> tuple:
     """Parse *xs_file* into a PyVista line mesh and a list of section names.
@@ -137,9 +133,7 @@ def add_cross_sections(pl: pv.Plotter, xs_file: str, z: float = 0.0) -> None:
     _draw_cross_sections(pl, mesh, names)
 
 
-# --------------------------------------------------------------------------- #
-# Low-level export helper                                                      #
-# --------------------------------------------------------------------------- #
+# Low-level export helper
 
 def export_frames(output, time_indices, update_frame, mesh, plotter):
     """Dispatch frame export based on *output* file extension.
@@ -201,11 +195,6 @@ class Overlay:
     def add_to(self, plotter: pv.Plotter, time_index: int = None) -> None:
         raise NotImplementedError
 
-
-# --------------------------------------------------------------------------- #
-# CrossSectionOverlay                                                          #
-# --------------------------------------------------------------------------- #
-
 class CrossSectionOverlay(Overlay):
     """Cross-section lines loaded once and reusable across any PlotView.
 
@@ -221,11 +210,6 @@ class CrossSectionOverlay(Overlay):
     def add_to(self, plotter: pv.Plotter, time_index: int = None) -> None:
         """Add the overlay to the *active* subplot of *plotter*."""
         _draw_cross_sections(plotter, self._mesh, self._names)
-
-
-# --------------------------------------------------------------------------- #
-# QuiverOverlay                                                                #
-# --------------------------------------------------------------------------- #
 
 class VelocityOverlay(Overlay):
     """Velocity vector overlay rendered at face centres.
@@ -275,10 +259,6 @@ class VelocityOverlay(Overlay):
         glyphs = self._polydata.glyph(orient='_vel', scale='_vel', factor=self.scale)
         plotter.add_mesh(glyphs, color=self.color, name=f'_quiver_{id(self)}')
 
-
-# --------------------------------------------------------------------------- #
-# PlotView                                                                     #
-# --------------------------------------------------------------------------- #
 
 class PlotView:
     """A single panel in a Viewer.
@@ -373,10 +353,6 @@ class PlotView:
         self._data_ptr[:] = self.get_field(time_index)
 
 
-# --------------------------------------------------------------------------- #
-# Viewer                                                                      #
-# --------------------------------------------------------------------------- #
-
 class Viewer:
     """Arrange PlotViews in a subplot grid and drive the interactive loop.
 
@@ -414,10 +390,6 @@ class Viewer:
         self.t0     = t0
         self.t1     = t1
         self.step   = step
-
-    # ------------------------------------------------------------------ #
-    # Internal helpers                                                     #
-    # ------------------------------------------------------------------ #
 
     def _init_views(self):
         for view in self.views:
@@ -481,10 +453,6 @@ class Viewer:
         if t1 < 0:
             t1 = self.nt + t1
         return max(0, t0), min(self.nt - 1, t1)
-
-    # ------------------------------------------------------------------ #
-    # Public interface                                                     #
-    # ------------------------------------------------------------------ #
 
     def show(self):
         """Open an interactive viewer alongside a slider window for time navigation.
@@ -647,19 +615,3 @@ class Viewer:
         elapsed = _time.time() - tic
         print(f"Wrote {nframes} frame(s) to {outfile} "
               f"in {elapsed:.1f}s ({elapsed / max(nframes, 1):.2f}s/frame)")
-
-
-    def export_movie(self, outfile: str = 'animation.mp4', t0: int = 0, t1: int = -1):
-        """Write an MP4 covering time steps *t0* through *t1* (both inclusive).
-
-        .. deprecated::
-            Use :meth:`export` instead, which supports all output formats::
-
-                viewer.export('animation.mp4', t0=t0, t1=t1)
-        """
-        warnings.warn(
-            "Viewer.export_movie() is deprecated; use Viewer.export() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.export(outfile, t0=t0, t1=t1)
